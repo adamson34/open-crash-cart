@@ -1,5 +1,7 @@
 # OpenCrashCart
 
+[![CI](https://github.com/adamson34/open-crash-cart/actions/workflows/ci.yml/badge.svg)](https://github.com/adamson34/open-crash-cart/actions/workflows/ci.yml)
+
 A native macOS (Apple Silicon) client for USB crash-cart adapters — an open, clean-room
 replacement for vendor crash-cart software that only ships as Intel binaries.
 
@@ -30,8 +32,17 @@ swift build                 # builds OCCKit + the CLIs
 ```
 
 CLIs for diagnostics: `swift run occ-probe` (detect adapters),
-`swift run occ-connect` (headless boot/handshake), `swift run occ-selftest`
-(video-codec unit tests).
+`swift run occ-connect` (headless boot/handshake).
+
+## Testing
+
+```sh
+swift run occ-tests
+```
+
+A dependency-free test suite (the CLT toolchain ships no XCTest/swift-testing) covering the
+video codec, VSP protocol packing, HID keymap/typing, hardware profiles, and gzip inflate.
+It runs in CI (GitHub Actions) on every push and pull request to `main`/`dev`.
 
 ## Firmware
 

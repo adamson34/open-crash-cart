@@ -14,7 +14,7 @@ let package = Package(
         .executable(name: "occ", targets: ["occ"]),                  // the app
         .executable(name: "occ-probe", targets: ["occ-probe"]),
         .executable(name: "occ-connect", targets: ["occ-connect"]),
-        .executable(name: "occ-selftest", targets: ["occ-selftest"]),
+        .executable(name: "occ-tests", targets: ["occ-tests"]),
     ],
     targets: [
         .systemLibrary(name: "Clibusb", path: "Sources/Clibusb"),
@@ -35,7 +35,7 @@ let package = Package(
             linkerSettings: [.unsafeFlags(["-L\(homebrewLib)"])]
         ),
         .executableTarget(
-            name: "occ-selftest",
+            name: "occ-tests",
             dependencies: ["OCCKit"],
             linkerSettings: [.unsafeFlags(["-L\(homebrewLib)"])]
         ),
