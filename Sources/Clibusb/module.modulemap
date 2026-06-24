@@ -1,0 +1,7 @@
+module Clibusb [system] {
+    // Absolute path to the Homebrew-installed libusb header (Apple Silicon default).
+    // Adjust if HOMEBREW_PREFIX differs.
+    header "/opt/homebrew/include/libusb-1.0/libusb.h"
+    link "usb-1.0"
+    export *
+}

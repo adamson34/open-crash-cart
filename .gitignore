@@ -1,0 +1,18 @@
+.DS_Store
+.build/
+.swiftpm/
+*.xcodeproj
+DerivedData/
+dist/
+
+# Reverse-engineering artifacts.
+# Keep ONLY our own clean-room specs (reverse/PROTOCOL.md, reverse/CODEC.md).
+# Everything else here is StarTech's intellectual property — their decompiled code,
+# firmware/FPGA blobs, and the extracted bundle — and must NOT be committed (clean-room +
+# keeps the repo safe to open-source). It stays local for reference only.
+reverse/decompiled/
+reverse/data/
+reverse/extracted/
+reverse/site-packages.zip
+reverse/fbext_darwin.so
+reverse/fbext_x64.so
