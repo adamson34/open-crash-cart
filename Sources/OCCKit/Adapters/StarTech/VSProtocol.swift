@@ -1,8 +1,8 @@
 import Foundation
 
 /// The StarTech / Digital Multitools "VSP" wire protocol, translated verbatim from the
-/// original app's `vsproto.py` (reverse/decompiled/vsproto.py). Each message is one
-/// ASCII command byte followed by a struct-packed payload. See reverse/PROTOCOL.md.
+/// original app's `vsproto.py` (decompiled from the vendor app, clean-room reference only). Each message is one
+/// ASCII command byte followed by a struct-packed payload. See docs/PROTOCOL.md.
 public enum VSProtocol {
 
     // USB interface + bulk endpoint addresses (interface 0).

@@ -4,7 +4,7 @@ Source: `/Applications/USB Crash Cart Adapter.app` v124.517 (May 2024).
 Original app: Python 2.7 + wxPython, py2app bundle, **Intel x86_64 only** (the reason
 for this rewrite — Rosetta 2 is being phased out).
 
-Decompiled sources live in `reverse/decompiled/`. This doc is the distilled spec.
+Derived clean-room from the vendor app's observable behavior; this doc is the distilled spec.
 
 ## Device identity
 - VID `0x152A` (decimal 5418, "DMTZ" = Digital Multitools Inc., the OEM)
@@ -86,7 +86,7 @@ savedPos, ticks, words, fps, misc[]. `bps = words*16*1000/ticks`.
    periodic `s`; echo `H` heartbeats; fine-tune X/Y via black-edge detection.
 
 Firmware/FPGA blobs ship in the app `data/` dir and are **reusable as-is**:
-`cc.fc5, ulckm.fc5, ulcvm.fc5, ulcvm.fgz, usbip.fgz`. (Copied into `reverse/data/`.)
+`cc.fc5, ulckm.fc5, ulcvm.fc5, ulcvm.fgz, usbip.fgz`.
 
 ## Input encoding
 - **Keyboard**: host maps native keycodes → USB HID usage IDs (`libwxkeys.wxKeyCodestoUSB`,

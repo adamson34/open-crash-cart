@@ -1,7 +1,7 @@
 import Foundation
 
 /// Real decoder for the StarTech 16×16-tile video codec, reverse-engineered from
-/// `fbext_darwin.so` (see reverse/CODEC.md). Maintains a fixed 1920×1600 BGRA framebuffer
+/// `fbext_darwin.so` (see docs/CODEC.md). Maintains a fixed 1920×1600 BGRA framebuffer
 /// (matching the device's absolute tile addressing) and emits cropped active-region frames.
 ///
 /// Output is BGRA8888 so frames drop straight into Metal `.bgra8Unorm` / CoreGraphics.
