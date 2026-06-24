@@ -3,6 +3,7 @@ import AppKit
 @MainActor protocol ToolbarActions: AnyObject {
     func ctrlAltDel()
     func toggleKeyboard()
+    func pasteText()
     func refreshScreen()
     func retuneVideo()
     func toggleVideoAdjust()
@@ -156,6 +157,7 @@ final class ToolbarStrip: NSView {
 
         stack.addArrangedSubview(button("bolt.horizontal.circle", "Send Ctrl-Alt-Del", #selector(onCAD)))
         stack.addArrangedSubview(button("keyboard", "On-screen keyboard", #selector(onKeyboard)))
+        stack.addArrangedSubview(button("doc.on.clipboard", "Paste clipboard to target (⇧⌘V)", #selector(onPaste)))
         stack.addArrangedSubview(separator())
         stack.addArrangedSubview(button("arrow.clockwise", "Refresh screen", #selector(onRefresh)))
         stack.addArrangedSubview(button("wand.and.stars", "Auto-tune video", #selector(onRetune)))
@@ -178,6 +180,7 @@ final class ToolbarStrip: NSView {
     }
 
     @objc private func onKeyboard() { actions?.toggleKeyboard() }
+    @objc private func onPaste()    { actions?.pasteText() }
     @objc private func onCAD()      { actions?.ctrlAltDel() }
     @objc private func onRefresh()  { actions?.refreshScreen() }
     @objc private func onRetune()   { actions?.retuneVideo() }

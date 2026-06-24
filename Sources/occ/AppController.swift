@@ -358,9 +358,12 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     @objc private func menuEjectMedia()  { adapter?.ejectMedia() }
     @objc private func menuKeyboard()    { toggleKeyboard() }
 
-    @objc private func menuPasteText() {
+    @objc private func menuPasteText() { pasteText() }
+
+    func pasteText() {
         if let text = NSPasteboard.general.string(forType: .string), !text.isEmpty {
             adapter?.typeText(text)
+            statusBar.setMessage("Pasting \(text.count) character\(text.count == 1 ? "" : "s") to target…")
         } else {
             statusBar.setMessage("Clipboard has no text to paste.")
         }
