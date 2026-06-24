@@ -202,8 +202,10 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         case .status(let status):
             statusBar.update(status)
             if !status.adjustments.isEmpty {
+                // Track the device's values for when the panel next opens, but do NOT push
+                // them onto the sliders live — that would fight an in-progress drag (and the
+                // device's auto-fine-tune of posX/posY) and make the knob jump.
                 latestAdjustments = status.adjustments
-                adjustPanel?.apply(status.adjustments)
             }
             if case .live(let w, let h, _) = status.state {
                 showVideo()
