@@ -7,6 +7,7 @@ import AppKit
     func retuneVideo()
     func toggleVideoAdjust()
     func snapshot()
+    func copyTextFromScreen()
     func mountMedia()
     func toggleRecording()
     func actualSize()
@@ -160,6 +161,7 @@ final class ToolbarStrip: NSView {
         stack.addArrangedSubview(button("wand.and.stars", "Auto-tune video", #selector(onRetune)))
         stack.addArrangedSubview(button("slider.horizontal.3", "Video adjustments", #selector(onAdjust)))
         stack.addArrangedSubview(button("camera", "Save snapshot", #selector(onSnap)))
+        stack.addArrangedSubview(button("text.viewfinder", "Copy text from screen (OCR)", #selector(onOCR)))
         stack.addArrangedSubview(button("opticaldisc", "Mount disk image (ISO/IMG)", #selector(onMedia)))
         stack.addArrangedSubview(button("record.circle", "Record session to video", #selector(onRecord)))
         stack.addArrangedSubview(separator())
@@ -181,6 +183,7 @@ final class ToolbarStrip: NSView {
     @objc private func onRetune()   { actions?.retuneVideo() }
     @objc private func onAdjust()   { actions?.toggleVideoAdjust() }
     @objc private func onSnap()     { actions?.snapshot() }
+    @objc private func onOCR()      { actions?.copyTextFromScreen() }
     @objc private func onMedia()    { actions?.mountMedia() }
     @objc private func onRecord()   { actions?.toggleRecording() }
     @objc private func onFit()      { actions?.fitToWindow() }

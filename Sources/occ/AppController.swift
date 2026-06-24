@@ -66,6 +66,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
 
         videoView = VideoView(frame: .zero)
         videoView.input = self
+        videoView.onRegionSelected = { [weak self] image in self?.handleOCR(image) }
         placeholder = PlaceholderView(frame: .zero)
 
         [toolbar, screenCard, statusBar].forEach {
@@ -266,6 +267,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
             .separator(),
             mi("Start/Stop Recording", #selector(menuRecord), "e", [.command, .shift]),
             mi("Save Snapshot…", #selector(menuSnapshot), "s"),
+            mi("Copy Text from Screen…", #selector(menuOCR), "c", [.command, .shift]),
         ])
 
         // Keyboard
@@ -351,6 +353,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         showPlaceholder(.noAdapter)
     }
     @objc private func menuSnapshot()    { snapshot() }
+    @objc private func menuOCR()         { copyTextFromScreen() }
     @objc private func menuMountMedia()  { mountMedia() }
     @objc private func menuEjectMedia()  { adapter?.ejectMedia() }
     @objc private func menuKeyboard()    { toggleKeyboard() }
@@ -565,6 +568,34 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         panel.nameFieldStringValue = "OpenCrashCart-snapshot.png"
         panel.begin { response in
             if response == .OK, let url = panel.url { try? png.write(to: url) }
+        }
+    }
+
+    func copyTextFromScreen() {
+        guard isLive else {
+            statusBar.setMessage("Connect to a live target before using OCR.")
+            return
+        }
+        statusBar.setMessage("Drag to select the text to copy (Esc to cancel)…")
+        videoView.beginRegionSelection()
+    }
+
+    private func handleOCR(_ image: CGImage?) {
+        guard let image else { statusBar.setMessage("OCR cancelled."); return }
+        statusBar.setMessage("Reading text…")
+        recognizeText(in: image) { [weak self] text in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else {
+                    self.statusBar.setMessage("No text found in the selection.")
+                    return
+                }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(trimmed, forType: .string)
+                let n = trimmed.count
+                self.statusBar.setMessage("Copied \(n) character\(n == 1 ? "" : "s") from screen to clipboard.")
+            }
         }
     }
 }
