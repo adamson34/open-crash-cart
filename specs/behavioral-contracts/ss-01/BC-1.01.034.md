@@ -23,9 +23,10 @@ Note: the current codebase (Sources/occ/AppController.swift) does NOT yet contai
 2. `menuDisconnect()` is called by the user.
 
 ## Postconditions (menuDisconnect, v1.1.0)
-1. Same teardown as current: adapter disconnect (fire-and-forget), `adapter=nil`, `eventTask=nil`, `connecting=false`, `didAutoSize=false`, `showPlaceholder(.noAdapter)`.
+1. Teardown, in order: **`eventTask?.cancel()`** (the current code only sets `eventTask=nil` without cancelling — adversary H1; `menuConnectUVC` already cancels, so this aligns the two paths), adapter disconnect (fire-and-forget), `adapter=nil`, `eventTask=nil`, `connecting=false`, `didAutoSize=false`, `showPlaceholder(.noAdapter)`.
 2. `userDisconnected = true` is set.
 3. `tryConnect()` entry guard expanded: returns immediately if `adapter == nil && !connecting` is not sufficient alone — also returns if `userDisconnected == true`.
+4. **Stale-event isolation (adversary H1):** a connect `Task` launched microseconds before Disconnect (still mid-`await adapter.connect()`), or a late `.disconnected` emitted by the torn-down adapter, MUST NOT mutate session state or re-show video. `handle(_:)` ignores any event whose originating adapter is not the current `adapter` — e.g. via an adapter identity/generation token captured when the consuming `Task` starts. Cancelling `eventTask` (PC#1) plus this identity guard together guarantee no post-Disconnect video re-show.
 
 ## Postconditions (flag clearance)
 1. `menuReconnect()`: sets `userDisconnected = false` before calling `tryConnect()`.
@@ -45,6 +46,8 @@ Note: the current codebase (Sources/occ/AppController.swift) does NOT yet contai
 | EC-003 | User clicks Reconnect after Disconnect | `userDisconnected=false`; immediate tryConnect() |
 | EC-004 | User selects UVC device after Disconnect | `userDisconnected=false`; UVC session starts |
 | EC-005 | App launch (first connect): `userDisconnected=false` | Normal auto-connect at launch |
+| EC-006 | Connect Task in flight when Disconnect clicked | `eventTask` cancelled; the in-flight task's events are ignored (identity guard); no video shown |
+| EC-007 | Torn-down adapter emits a late `.disconnected` after Disconnect | Ignored by `handle(_:)` (not the current adapter); state stays `.noAdapter` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
