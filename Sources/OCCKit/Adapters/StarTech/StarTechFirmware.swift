@@ -4,10 +4,12 @@ import Foundation
 /// installation at runtime**. We deliberately do NOT bundle or redistribute the vendor's
 /// proprietary firmware blobs — OpenCrashCart only reads the copy the user already has.
 ///
-/// Resolution order:
-///   1. `OCC_FIRMWARE_DIR` environment variable (explicit override), then
-///   2. the installed "USB Crash Cart Adapter.app" bundle, then
-///   3. the per-user data dir the vendor app copies into `~`.
+/// Resolution order (see `firmwareSearchPaths` for the authoritative chain):
+///   1. a profile's own `firmwareDir`, then
+///   2. `OCC_FIRMWARE_DIR` (explicit override), then
+///   3. the Settings-configured firmware directory, then
+///   4. OpenCrashCart's own app-support firmware folder, then
+///   5–7. vendor fallbacks (the "USB Crash Cart Adapter.app" bundle and per-user `~` data dirs).
 public struct StarTechFirmware {
 
     public enum FirmwareError: Error, CustomStringConvertible {

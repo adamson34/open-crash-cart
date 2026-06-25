@@ -107,5 +107,13 @@ final class StatusBar: NSView {
 }
 
 private extension KeyboardEmulation {
-    var name: String { ["usb", "ps2", "sun"][Int(rawValue)] }
+    // Exhaustive switch — the compiler forces a case for every emulation type, so a future
+    // addition can't trap an array index (was `["usb","ps2","sun"][Int(rawValue)]`).
+    var name: String {
+        switch self {
+        case .usb: return "usb"
+        case .ps2: return "ps2"
+        case .sun: return "sun"
+        }
+    }
 }

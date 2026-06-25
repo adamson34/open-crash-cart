@@ -32,6 +32,7 @@ public final class USBDevice: @unchecked Sendable {
 
     private var ctx: OpaquePointer?
     private var handle: OpaquePointer?
+    private var claimedInterface: Int32?     // released on close (no backend-specific constant)
     public let info: DiscoveredDevice
 
     private init(ctx: OpaquePointer?, handle: OpaquePointer?, info: DiscoveredDevice) {
@@ -76,6 +77,7 @@ public final class USBDevice: @unchecked Sendable {
         guard let handle else { throw USBTransportError.disconnected }
         let rc = libusb_claim_interface(handle, Int32(number))
         guard rc == 0 else { throw USBTransportError.claimFailed(rc) }
+        claimedInterface = Int32(number)
     }
 
     /// Blocking bulk write. Returns bytes transferred.
@@ -107,7 +109,7 @@ public final class USBDevice: @unchecked Sendable {
 
     public func close() {
         if let handle {
-            libusb_release_interface(handle, Int32(VSProtocol.interfaceNumber))
+            if let claimedInterface { libusb_release_interface(handle, claimedInterface) }
             libusb_close(handle)
             self.handle = nil
         }
