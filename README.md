@@ -29,7 +29,9 @@ _Coming soon._
 - 📋 **OCR copy-from-screen** — select text on the remote screen, copy it to your Mac clipboard
 - 📋 **Paste / type text** into the target
 - ⌨️ **On-screen keyboard** with sticky modifiers (incl. the Windows key)
-- 🎛️ **Manual video tuning**, **DDC/EDID presets**, **relative-mouse mode**
+- 🎛️ **Auto-tune & manual video tuning**, **DDC/EDID presets**, **relative-mouse mode**
+- 🪄 **Client-side image enhancement** — brightness / contrast / sharpen / grayscale to make fuzzy
+  analog text readable (display-only; pairs with OCR)
 - 🎥 **Session recording** to H.264, snapshots, themed UI, full menu bar
 - 🔌 **Multi-adapter** — StarTech / Digital Multitools crash carts *and* generic UVC dongles,
   selected by user-editable hardware profiles
@@ -73,8 +75,19 @@ swift run occ-tests
 ```
 
 A dependency-free test suite (the CLT toolchain ships no XCTest/swift-testing) covering the
-video codec, VSP + CH9329 protocol packing, HID keymap/typing, hardware profiles, and gzip
-inflate. Runs in CI on every push / PR to `main` and `dev`.
+video codec + keyframe-recovery, VSP + CH9329 protocol packing, HID keymap/typing, hardware
+profiles + the device-matching registry, firmware-search resolution, USB error mapping, virtual-
+media block math, and gzip inflate. Runs in CI on every push / PR to `main` and `dev`.
+
+Code coverage over the OCCKit core:
+
+```sh
+./scripts/coverage.sh        # llvm-cov report (also surfaced in each CI run's summary)
+```
+
+The pure logic (codec, wire protocols, HID mapping, profiles, firmware resolution) sits near
+100%; hardware-I/O paths (USB transport, UVC capture) need real devices and are validated on
+hardware rather than in unit tests.
 
 ## Firmware
 
