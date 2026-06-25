@@ -73,7 +73,7 @@ No errors are raised. Invalid VID/PID strings are silently stored; the profile w
 | Source file:line | `Sources/occ/SettingsWindow.swift:230-241` |
 | Ingest BC | BC-130 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (profile field integrity) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

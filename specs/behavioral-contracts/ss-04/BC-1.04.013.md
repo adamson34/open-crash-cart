@@ -62,7 +62,7 @@ No error cases. The conditional is a simple `if !profile.builtIn { ... }` block.
 | Source file:line | `Sources/occ/SettingsWindow.swift:139-148` |
 | Ingest BC | BC-132 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (built-in profile deletion prevention) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

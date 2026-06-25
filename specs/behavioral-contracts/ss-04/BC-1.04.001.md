@@ -76,7 +76,7 @@ No error is raised. Unparseable strings silently return `0`. Callers must not re
 | Ingest BC | BC-070 (pass-3-behavioral-contracts.md) |
 | Ingest BC-205 | pass-2-3-deep-panels-r2.md |
 | L2 Invariants | DI-TBD (profile matching must be deterministic) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

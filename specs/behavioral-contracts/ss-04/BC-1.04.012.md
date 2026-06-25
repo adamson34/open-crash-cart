@@ -69,7 +69,7 @@ No errors. UUID generation never fails in Swift on macOS.
 | Source file:line | `Sources/occ/SettingsWindow.swift:233-241` |
 | Ingest BC | BC-131 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (profile identity immutability through edit) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

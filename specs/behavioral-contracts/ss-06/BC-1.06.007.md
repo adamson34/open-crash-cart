@@ -74,7 +74,7 @@ Both functions are total (no throws, no crashes). Short-buffer handling is in `p
 | Ingest BC | BC-084 ("STATUS parse 29/35B; bps formula; state derivation; on-change emit") — opencrashcart-pass-3-behavioral-contracts.md |
 | Public-API delta | Extract `public static func computeBytesPerSecond(words:ticks:) -> Double` and `public static func deriveState(fpgaLoaded:noVideo:width:height:hz:) -> AdapterState` |
 | Stories | TBD |
-| Capability Anchor Justification | `capability: CAP-TBD` — STATUS message parsing and state derivation per Pass-3 BC-084; capability ID to be assigned after capabilities.md is updated |
+| Capability Anchor Justification | `capability: CAP-TBD` — STATUS message parsing and state derivation per Pass-3 BC-084; capability ID assigned in the architecture phase |
 
 ## Source Evidence
 | Field | Value |

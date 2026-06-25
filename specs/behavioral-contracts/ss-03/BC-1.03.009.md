@@ -71,7 +71,7 @@ No throws. The `guard input.isReadyForMoreMediaData, let pool = adaptor.pixelBuf
 | Ingest BC | BC-136 (pass-3-deep-app-layer.md) |
 | Stories | (filled by story-writer) |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-RECORD ("Record the decoded video stream to an H.264 .mov file") per capabilities.md §CAP-RECORD |
+| Capability Anchor Justification | CAP-RECORD ("Record the decoded video stream to an H.264 .mov file") |
 
 ## Source Evidence
 

@@ -65,7 +65,7 @@ If this test does not exist or fails, `swift run occ-tests` exits 1, blocking CI
 | Ingest BC | BC-021 (opencrashcart-pass-3-behavioral-contracts.md: "libusb rc map: 0 ok, -7 timeout, -4 disconnected, else transferFailed. HIGH constants") |
 | Public-API delta | Extract `public static func mapLibusbResult(_ rc: Int32) -> USBTransportError?` from existing `private func check(_:)` |
 | Stories | TBD |
-| Capability Anchor Justification | `capability: CAP-TBD` — USB error mapping per Pass-3 BC-021; capability ID to be assigned after capabilities.md is updated |
+| Capability Anchor Justification | `capability: CAP-TBD` — USB error mapping per Pass-3 BC-021; capability ID assigned in the architecture phase |
 
 ## Source Evidence
 | Field | Value |

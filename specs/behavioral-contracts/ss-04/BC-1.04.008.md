@@ -75,7 +75,7 @@ domain_facts: [BC-203]
 | Source file:line | `Sources/OCCKit/Adapter/ProfileStore.swift:84-91` (writeToDisk + NSLock) |
 | Ingest BC | BC-203 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (thread-safe profile access) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

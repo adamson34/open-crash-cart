@@ -76,7 +76,7 @@ introduced: v1.0.0
 | Ingest BC | BC-125 (pass-3-deep-app-layer.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-ENHANCE ("Apply client-side display-only image enhancements to the video stream") per capabilities.md §CAP-ENHANCE |
+| Capability Anchor Justification | CAP-ENHANCE ("Apply client-side display-only image enhancements to the video stream") |
 
 ## Source Evidence
 

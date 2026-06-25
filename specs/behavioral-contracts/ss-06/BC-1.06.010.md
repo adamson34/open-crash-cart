@@ -69,7 +69,7 @@ Violations of this policy are process errors, not runtime errors. Class (a) viol
 | Source file:line | `Sources/occ-tests/main.swift:1-14` (test registration), `.github/workflows/ci.yml` (enforcement) |
 | Ingest BC | Gaps section: "test-backfill targets: USB mapping, virtual media math, firmware search, FPGA upload framing, STATUS parse, mouse coalescing, command-queue priority — all code-grounded but UNTESTED" — opencrashcart-pass-3-behavioral-contracts.md:78 |
 | Stories | TBD |
-| Capability Anchor Justification | `capability: CAP-TBD` — v1.1.0 test-backfill coverage policy per Pass-3 Gaps section (policy-level contract); capability ID to be assigned after capabilities.md is updated |
+| Capability Anchor Justification | `capability: CAP-TBD` — v1.1.0 test-backfill coverage policy per Pass-3 Gaps section (policy-level contract); capability ID assigned in the architecture phase |
 
 ## Source Evidence
 | Field | Value |

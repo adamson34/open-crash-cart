@@ -70,7 +70,7 @@ No error cases; the function always returns a `Bool`. Fail-closed: uncertain or 
 | Test file:line | `Sources/occ-tests/ProfileTests.swift:16-19` |
 | Ingest BC | BC-071 (pass-3-behavioral-contracts.md) |
 | L2 Invariants | DI-TBD (fail-closed device matching) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

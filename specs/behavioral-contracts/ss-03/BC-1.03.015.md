@@ -84,7 +84,7 @@ No error conditions. `allowsTickMarkValuesOnly` enforces valid integer values at
 | Ingest BC | BC-208 (pass-2-3-deep-panels-r2.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-ADJUST ("Tune analog video parameters (sharpness, phase, horizontal, vertical, noise) via per-adjustment sliders") per capabilities.md §CAP-ADJUST |
+| Capability Anchor Justification | CAP-ADJUST ("Tune analog video parameters (sharpness, phase, horizontal, vertical, noise) via per-adjustment sliders") |
 
 ## Source Evidence
 

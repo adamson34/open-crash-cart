@@ -69,7 +69,7 @@ All errors are suppressed via `try?`. There is no error notification mechanism, 
 | Source file:line | `Sources/OCCKit/Adapter/ProfileStore.swift:84-91` |
 | Ingest BC | BC-204 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (profile persistence) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

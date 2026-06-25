@@ -65,7 +65,7 @@ A test section must exist in `occ-tests` that verifies CH9329 mouse event coales
 | Ingest BC | BC-036 ("mouse coalescing latest-wins") — opencrashcart-pass-3-behavioral-contracts.md |
 | Public-API delta | Extract `public final class MouseCoalescer` with `store(_:)` and `drain() -> MouseEvent?`; anchor is `UVCAdapter`, NOT `StarTechAdapter` |
 | Stories | TBD |
-| Capability Anchor Justification | `capability: CAP-TBD` — mouse coalescing behavior per Pass-3 BC-036; capability ID to be assigned after capabilities.md is updated |
+| Capability Anchor Justification | `capability: CAP-TBD` — mouse coalescing behavior per Pass-3 BC-036; capability ID assigned in the architecture phase |
 
 ## Source Evidence
 | Field | Value |

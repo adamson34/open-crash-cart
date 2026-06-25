@@ -75,7 +75,7 @@ If firmware is not found in any directory, the existing `notFound` error lists a
 | Ingest BC | BC-052 ("firmware search order (profile→env→store→app-support→vendor)") — opencrashcart-pass-3-behavioral-contracts.md |
 | Public-API delta | Extract `public static func firmwareSearchPaths(profileDir:env:storeDir:appSupportDir:vendorPaths:) -> [String]` from `searchDirectories(extra:)` |
 | Stories | TBD |
-| Capability Anchor Justification | `capability: CAP-TBD` — firmware search-directory ordering per Pass-3 BC-052; capability ID to be assigned after capabilities.md is updated |
+| Capability Anchor Justification | `capability: CAP-TBD` — firmware search-directory ordering per Pass-3 BC-052; capability ID assigned in the architecture phase |
 
 ## Source Evidence
 | Field | Value |

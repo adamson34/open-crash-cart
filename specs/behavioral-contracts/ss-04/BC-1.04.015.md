@@ -72,7 +72,7 @@ All `FileManager` operations and `ProfileStore.firmwareDirectory` assignment use
 | Source file:line | `Sources/occ/SettingsWindow.swift:184-203` |
 | Ingest BC | BC-134 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (firmware import reliability) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

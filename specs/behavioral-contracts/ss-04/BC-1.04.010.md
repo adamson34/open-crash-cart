@@ -65,7 +65,7 @@ No error or alert is presented to the user on empty-name abort. The dialog sheet
 | Source file:line | `Sources/occ/SettingsWindow.swift:228-229` |
 | Ingest BC | BC-129 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (profile name must not be empty) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

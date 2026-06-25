@@ -70,7 +70,7 @@ No error is raised at the profile-tier level. An invalid path is passed downstre
 | Source file:line | `Sources/OCCKit/Adapter/ProfileStore.swift:60-62` (`applicationSupportFirmwareDir`) |
 | Ingest domain fact | DF-200, DF-201 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (firmware location precedence) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

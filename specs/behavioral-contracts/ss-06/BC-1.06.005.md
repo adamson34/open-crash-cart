@@ -70,7 +70,7 @@ No errors are thrown from zero-pad reads or no-op writes — these are silent su
 | Ingest BC | BC-060 ("geometry ISO 2048 RO / IMG 512 RW; blockCount=size/blockSize"), BC-061 ("read zero-pads short/closed"), BC-062 ("write no-op if RO/closed; close idempotent") — opencrashcart-pass-3-behavioral-contracts.md |
 | Public-API delta | Promote `VirtualMedia` and its `init?(path:cdrom:)` from `internal` to `public` |
 | Stories | TBD |
-| Capability Anchor Justification | `capability: CAP-TBD` — virtual media I/O and geometry per Pass-3 BC-060..062; capability ID to be assigned after capabilities.md is updated |
+| Capability Anchor Justification | `capability: CAP-TBD` — virtual media I/O and geometry per Pass-3 BC-060..062; capability ID assigned in the architecture phase |
 
 ## Source Evidence
 | Field | Value |

@@ -80,7 +80,7 @@ No errors. If `miscIndex` returns `nil` (only possible for a future unimplemente
 | Source file:line | `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift:93-119` |
 | Ingest BC | BC-085 (pass-3-behavioral-contracts.md) |
 | L2 Invariants | DI-TBD (video adjustment encode correctness) |
-| Capability Anchor Justification | CAP-005 ("Video display control and DDC preset management") per capabilities.md §CAP-005 |
+| Capability Anchor Justification | CAP-005 ("Video display control and DDC preset management") |
 
 ## Related BCs
 

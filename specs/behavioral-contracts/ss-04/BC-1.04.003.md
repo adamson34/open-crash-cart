@@ -72,7 +72,7 @@ Test vector pinned at `ProfileTests.swift:22-24`.
 | Test file:line | `Sources/occ-tests/ProfileTests.swift:22-24` |
 | Ingest BC | BC-072 (pass-3-behavioral-contracts.md) |
 | L2 Invariants | DI-TBD (on-disk format stability) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

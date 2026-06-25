@@ -77,7 +77,7 @@ introduced: v1.0.0
 | Ingest BC | BC-142 (pass-3-deep-app-layer.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-OCR ("Run Vision OCR on a cropped screen region and copy result to clipboard") per capabilities.md §CAP-OCR |
+| Capability Anchor Justification | CAP-OCR ("Run Vision OCR on a cropped screen region and copy result to clipboard") |
 
 ## Source Evidence
 

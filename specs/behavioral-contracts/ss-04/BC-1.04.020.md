@@ -81,7 +81,7 @@ No runtime errors. The refactor is a compile-time structural change. If `Profile
 | Source file:line (source of truth) | `Sources/OCCKit/Adapter/ProfileStore.swift:20-29` |
 | Ingest BC | BC-073 (pass-3-behavioral-contracts.md) |
 | L2 Invariants | DI-TBD (single source of truth for device identity) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

@@ -78,7 +78,7 @@ No errors possible in slider manipulation. `onChange` closure failures are the c
 | Ingest BC | BC-207 (pass-2-3-deep-panels-r2.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-ENHANCE ("Apply client-side display-only image enhancements to the video stream") per capabilities.md §CAP-ENHANCE |
+| Capability Anchor Justification | CAP-ENHANCE ("Apply client-side display-only image enhancements to the video stream") |
 
 ## Source Evidence
 

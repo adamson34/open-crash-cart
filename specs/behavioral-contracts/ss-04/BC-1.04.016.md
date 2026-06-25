@@ -66,7 +66,7 @@ No errors. Enum construction from rawValue uses optional (`DDCPreset?`); out-of-
 | Source file:line | `Sources/OCCKit/Adapter/Types.swift:122-132` |
 | Ingest domain fact | DF-202 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (DDC preset wire values are stable protocol constants) |
-| Capability Anchor Justification | CAP-005 ("Video display control and DDC preset management") per capabilities.md §CAP-005 |
+| Capability Anchor Justification | CAP-005 ("Video display control and DDC preset management") |
 
 ## Related BCs
 

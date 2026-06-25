@@ -69,7 +69,7 @@ Mismatches are silently dropped. No error is surfaced to the UI. This is by desi
 | Ingest BC | BC-135 (pass-3-deep-app-layer.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-RECORD ("Record the decoded video stream to an H.264 .mov file") per capabilities.md §CAP-RECORD |
+| Capability Anchor Justification | CAP-RECORD ("Record the decoded video stream to an H.264 .mov file") |
 
 ## Source Evidence
 

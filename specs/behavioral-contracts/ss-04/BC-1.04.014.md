@@ -69,7 +69,7 @@ Each profile row in the Settings window shows a 10×10 colored dot indicating wh
 | Source file:line | `Sources/occ/SettingsWindow.swift:110-125` |
 | Ingest BC | BC-133 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (UI graceful degradation on hardware error) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 

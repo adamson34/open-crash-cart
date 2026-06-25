@@ -89,7 +89,7 @@ No errors. `ProcessInfo.processInfo.environment["OCC_PADDING"].flatMap { Double(
 | Ingest BC | BC-206 (pass-2-3-deep-panels-r2.md) |
 | Ingest domain fact | DF-204 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (UI layout state consistency) |
-| Capability Anchor Justification | CAP-006 ("UI theme and layout customisation") per capabilities.md §CAP-006 |
+| Capability Anchor Justification | CAP-006 ("UI theme and layout customisation") |
 
 ## Related BCs
 

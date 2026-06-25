@@ -66,7 +66,7 @@ introduced: v1.0.0
 | Ingest BC | BC-125 partial, BC-pass-2-deep `:23` "snapshotPNG wraps lastImage→PNG" |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-SNAPSHOT ("Capture a PNG snapshot of the current raw video frame") per capabilities.md §CAP-SNAPSHOT |
+| Capability Anchor Justification | CAP-SNAPSHOT ("Capture a PNG snapshot of the current raw video frame") |
 
 ## Source Evidence
 

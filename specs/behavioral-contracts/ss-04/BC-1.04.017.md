@@ -66,7 +66,7 @@ No error handling at this layer. If the device does not acknowledge the DDC comm
 | Source file:line | `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift:121-125` |
 | Ingest domain fact | DF-202, DF-203 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (DDC commands are stateless) |
-| Capability Anchor Justification | CAP-005 ("Video display control and DDC preset management") per capabilities.md §CAP-005 |
+| Capability Anchor Justification | CAP-005 ("Video display control and DDC preset management") |
 
 ## Related BCs
 

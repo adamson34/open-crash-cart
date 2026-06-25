@@ -61,7 +61,7 @@ A test section must exist in `occ-tests` that verifies `CommandQueue` drain orde
 | Ingest BC | BC-037 ("CommandQueue input drained before control") — opencrashcart-pass-3-behavioral-contracts.md |
 | Public-API delta | Promote `CommandQueue` and `Priority` from `internal` to `public` in `StarTechSupport.swift:6-7` — no behavioral change |
 | Stories | TBD |
-| Capability Anchor Justification | `capability: CAP-TBD` — command-queue priority ordering per Pass-3 BC-037; capability ID to be assigned after capabilities.md is updated |
+| Capability Anchor Justification | `capability: CAP-TBD` — command-queue priority ordering per Pass-3 BC-037; capability ID assigned in the architecture phase |
 
 ## Source Evidence
 | Field | Value |

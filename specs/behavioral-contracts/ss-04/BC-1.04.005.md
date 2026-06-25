@@ -78,7 +78,7 @@ domain_facts: [BC-200]
 | Source file:line | `Sources/OCCKit/Adapter/ProfileStore.swift:37-45` |
 | Ingest BC | BC-200 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (store must always have at least one profile) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") per capabilities.md §CAP-004 |
+| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
 
 ## Related BCs
 
