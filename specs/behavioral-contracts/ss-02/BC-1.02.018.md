@@ -19,91 +19,87 @@ introduced: v1.1.0
 
 **This contract formalizes a v1.1.0 behavior change. It describes the CORRECTED behavior, not the current v1.0.0 code.**
 
-In v1.0.0, `StarTechTileDecoder` has a `needsKeyframe: Bool` property wired into `StarTechAdapter.videoLoop` — after each `decoder.ingest()` call, the loop checks `decoder.needsKeyframe` and if true enqueues `VSPack.command(.doIFrame)` to the control queue (StarTechAdapter.swift:299-301). However, in v1.0.0 the decoder never sets `needsKeyframe = true` (it is only cleared, at StarTechTileDecoder.swift:51 and :45). This means video desync — caused by record-reassembly failure or wildly out-of-range tile coordinates — permanently corrupts the displayed frame with no recovery path. This is a documented dormant defect (ingest BC-019).
+In v1.0.0, `StarTechTileDecoder` exposes `needsKeyframe: Bool`, and `StarTechAdapter.videoLoop` checks it after each `decoder.ingest()` and enqueues `VSPack.command(.doIFrame)` at control priority when true (StarTechAdapter.swift:299-301). But the decoder **never sets `needsKeyframe = true`** — line 51 only ever clears it. The recovery path is dead code, so stream corruption permanently degrades the display with no self-heal (ingest BC-019). **This defect wiring is confirmed HIGH from source.**
 
-**v1.1.0 corrected behavior:** `StarTechTileDecoder` sets `needsKeyframe = true` in two new conditions:
+**v1.1.0 corrected behavior.** The decoder detects desync with two *reachable* signals (the v1.0.0 contract's "leftover > leftoverNeeded" trigger was rejected in adversarial review B2 — `take = min(leftoverNeeded - leftover.count, data.count)` at TileDecoder.swift:58-60 makes that condition unreachable). Replacement signals:
 
-1. **Reassembly failure:** During the leftover-completion path (StarTechTileDecoder.swift:56-71), if the reassembled `leftover` would exceed `leftoverNeeded` bytes (a sign of stream corruption rather than a clean split), the decoder abandons the partial record, clears `leftover`, resets `leftoverNeeded = 0`, and sets `needsKeyframe = true`.
+1. **Garbage-coordinate burst (per-ingest):** `processRecord` already skips records whose coordinates are out of range — and because the valid tile grid is `tilesWide = 120 × tilesHigh = 100` while the 7-bit fields allow 0..127, **`tileY >= tilesHigh` (≥100) or `tileX >= tilesWide` (≥120) is always invalid**. The decoder counts these skipped-as-invalid records within a single `ingest()` call; if the count reaches `oorThreshold` (default 8), it sets `needsKeyframe = true`. (This replaces the rejected "both axes ≥110" heuristic from B4, which AND-gated two axes and missed single-axis garbage.)
 
-2. **Wild out-of-range coordinates:** In `processRecord`, when `tileX >= tilesWide || tileY >= tilesHigh` AND the coordinate values exceed the 7-bit field's plausible range (e.g., both X and Y are at the maximum 127 — indicating random/garbage data rather than a legitimate high tile index near the boundary), `needsKeyframe` is set to `true`. A single mildly-out-of-range tile does NOT trigger keyframe recovery; only clearly corrupt coordinates (heuristic: both axes simultaneously at or above a configurable threshold, default 110) do.
+2. **Sustained no-decode (cross-ingest):** a `staleIngestCount` increments on each non-empty `ingest()` that writes **zero in-range tiles**; when it reaches `staleThreshold` (default 8), the decoder sets `needsKeyframe = true` and resets the counter. A successful in-range tile write resets `staleIngestCount = 0`.
 
-**videoLoop reaction:** When `decoder.needsKeyframe == true` after an `ingest()` call, `videoLoop` enqueues a `.doIFrame` command (ASCII 'i') at control priority. The device responds with a full keyframe, restoring a coherent display.
+**Bounded I-frame request (corrects B3 spam risk).** `StarTechAdapter` holds a `keyframeRequested: Bool` latch. When `decoder.needsKeyframe == true` after an ingest, `videoLoop` enqueues `.doIFrame` **only if `!keyframeRequested`**, then sets `keyframeRequested = true`. The latch is cleared **only when a clean frame is decoded** (an `ingest()` that writes ≥1 in-range tile with zero invalid-coordinate skips). This guarantees **at most one outstanding `.doIFrame` between clean frames** — no per-ingest enqueue, no unbounded `controlQ` growth under sustained desync.
 
-**Self-healing property:** After the I-frame arrives and the decoder successfully processes full tile records, the next ingest call clears `needsKeyframe = false` (line 51) and normal incremental operation resumes.
+**Self-healing property.** After the device returns a keyframe and the decoder writes clean in-range tiles, `staleIngestCount` and the invalid-skip counter reset, `keyframeRequested` clears, and normal incremental operation resumes.
 
 ## Preconditions
 
-- The decoder is running (not in `reset()` state).
-- `decoder.ingest(chunk)` has just been called.
-- One of:
-  - The leftover reassembly buffer received more bytes than `leftoverNeeded` (stream framing error).
-  - `processRecord` encountered tile coordinates where both X and Y simultaneously exceed the "wildly OOR" threshold (default: ≥ 110, i.e., > 14 tiles beyond the 96-column edge).
+1. The decoder is running (not in `reset()` state); `decoder.ingest(chunk)` was just called with a non-empty chunk.
+2. A desync condition holds: either (a) ≥ `oorThreshold` (default 8) records in this `ingest()` were skipped for out-of-range coordinates (`tileX >= tilesWide || tileY >= tilesHigh`), or (b) `staleIngestCount` reached `staleThreshold` (default 8) consecutive non-empty ingests with zero in-range tiles written.
 
 ## Postconditions
 
-- `needsKeyframe = true` is set before `ingest()` returns.
-- `ingest()` may return `nil` (if no tile was written) or a partial frame.
-- `StarTechAdapter.videoLoop` detects `decoder.needsKeyframe == true` at StarTechAdapter.swift:299.
-- `queue.enqueue(VSPack.command(.doIFrame), priority: .control)` is called.
-- The device receives 'i' and responds with a full keyframe within the next video cycle.
-- On the next call to `ingest()`, `needsKeyframe` is reset to `false` (line 51) regardless of content.
+1. `decoder.needsKeyframe == true` after the triggering `ingest()` returns.
+2. `videoLoop` enqueues `VSPack.command(.doIFrame)` at `.control` priority **iff** `keyframeRequested == false`; it then sets `keyframeRequested = true`.
+3. While `keyframeRequested == true`, no further `.doIFrame` is enqueued, regardless of how many subsequent ingests report `needsKeyframe`.
+4. On the next `ingest()` that writes ≥1 in-range tile with zero invalid-coordinate skips, the decoder resets `staleIngestCount = 0` and the invalid-skip state, and `StarTechAdapter` clears `keyframeRequested = false`.
 
 ## Invariants
 
-- `needsKeyframe` is ephemeral: set in one `ingest()` call, consumed and cleared at the start of the next.
-- The I-frame command is enqueued at `.control` priority — it does not preempt in-flight keyboard/mouse input but is not starved by input events.
-- A single mildly-out-of-range tile (tileX = 121, tileY = 5) does NOT set `needsKeyframe`; only the "wildly OOR" condition does.
-- `reset()` clears `needsKeyframe = false` (StarTechTileDecoder.swift:45); reconnect does not trigger spurious I-frames.
+1. **At most one outstanding `.doIFrame` between clean frames** (the `keyframeRequested` latch) — bounded `controlQ` contribution from this path.
+2. The desync triggers are *reachable*: `tileY >= tilesHigh` is a real, frequently-occurring corruption signature (not the unreachable leftover-overflow nor the incoherent both-axes-≥110 rule).
+3. `.doIFrame` is enqueued at `.control` priority: it never preempts in-flight keyboard/mouse input, and is not starved by input (drained after `inputQ`).
+4. `reset()` clears `needsKeyframe`, `keyframeRequested`, `staleIngestCount`, and the invalid-skip counter — reconnect never emits a spurious I-frame.
+5. A single mildly-out-of-range record (one skipped tile) does NOT trigger keyframe recovery — only crossing `oorThreshold`/`staleThreshold` does.
 
 ## Edge Cases
 
-| EC-ID  | Scenario                                        | Expected Outcome                                              |
-|--------|-------------------------------------------------|---------------------------------------------------------------|
-| EC-088 | Normal transfer, all tiles in range             | needsKeyframe stays false; no I-frame enqueued                |
-| EC-089 | Leftover byte count exceeds leftoverNeeded       | needsKeyframe = true; I-frame enqueued                       |
-| EC-090 | Single out-of-range tile (tileX=121, tileY=5)   | needsKeyframe stays false (mild OOR, not "wild")             |
-| EC-091 | Both axes wildly OOR (tileX=127, tileY=127)     | needsKeyframe = true; I-frame enqueued                       |
-| EC-092 | I-frame enqueued, device sends keyframe          | Next ingest clears needsKeyframe; display recovers            |
-| EC-093 | reset() called                                  | needsKeyframe = false; no I-frame on reconnect               |
-| EC-094 | Multiple consecutive desync frames              | I-frame enqueued on each until ingest succeeds cleanly       |
+| EC-ID  | Scenario | Expected Outcome |
+|--------|----------|------------------|
+| EC-088 | Normal transfer, all tiles in range | needsKeyframe false; staleIngestCount=0; no I-frame |
+| EC-089 | 8+ records in one ingest skipped for tileY≥100 (garbage) | needsKeyframe=true; I-frame enqueued (latch was false) |
+| EC-090 | 1 record skipped (tileX=121) in an otherwise-clean ingest | needsKeyframe false (below oorThreshold) |
+| EC-091 | 8 consecutive non-empty ingests write zero in-range tiles | needsKeyframe=true on the 8th; staleIngestCount resets; I-frame enqueued |
+| EC-092 | needsKeyframe true on ingest N, and again on N+1 (still desynced) | I-frame enqueued once (N); NOT re-enqueued on N+1 (keyframeRequested latched) |
+| EC-093 | Device returns keyframe → ingest writes clean in-range tiles | counters + keyframeRequested reset; display recovers; subsequent desync can request again |
+| EC-094 | `reset()` / reconnect mid-desync | all desync state cleared; no spurious I-frame |
+| EC-095 | `queue` closed (disconnect) when enqueue attempted | enqueue is a no-op; videoLoop exits on next USB read error (no extra handling) |
 
 ## Canonical Test Vectors
 
-| Scenario                                           | needsKeyframe after ingest | I-frame enqueued | Category     |
-|----------------------------------------------------|---------------------------|------------------|--------------|
-| Clean transfer with valid tiles                    | false                     | no               | happy-path   |
-| Leftover overflow (corrupt stream)                 | true                      | yes              | error (v1.1.0 new) |
-| tileX=127, tileY=127 (wildly OOR)                  | true                      | yes              | error (v1.1.0 new) |
-| tileX=121, tileY=5 (mildly OOR, not wild)          | false                     | no               | edge         |
-| After I-frame received and clean ingest            | false                     | no               | happy-path (recovery) |
+| Scenario | needsKeyframe after ingest | I-frame enqueued this call | Category |
+|----------|---------------------------|----------------------------|----------|
+| Clean transfer, in-range tiles | false | no | happy-path |
+| 8 records skipped tileY=100..127 in one ingest | true | yes (latch false→true) | error (v1.1.0 new) |
+| 8th consecutive zero-in-range-tile ingest | true | yes | error (v1.1.0 new) |
+| Still desynced on the following ingest (latch already set) | true | **no** (latch held) | edge (spam guard) |
+| 1 out-of-range record only (below threshold) | false | no | edge |
+| Keyframe arrives, clean ingest follows | false | no (latch cleared) | happy-path (recovery) |
 
 ## Error Handling
 
-If `requestKeyframe()` fails to enqueue (e.g., `queue` is closed due to disconnect), the video loop will exit naturally on the next USB read error. No additional error handling is required for the keyframe path.
+If `.doIFrame` cannot be enqueued because `queue` is closed (disconnect), the enqueue is a silent no-op and `videoLoop` exits on the next USB read error — consistent with existing transport teardown. No additional error handling is required.
 
 ## Current State (v1.0.0 — Dormant Defect)
 
-In v1.0.0 code at StarTechTileDecoder.swift:51, `needsKeyframe` is unconditionally set to `false` at the start of every `ingest()` call, and there is NO code that ever sets it to `true` during normal operation. The `videoLoop` check at StarTechAdapter.swift:299-301 is therefore dead code. This means any stream corruption results in a permanently incorrect or frozen display with no self-healing.
-
-Source: `opencrashcart-pass-3-behavioral-contracts.md:24` — "BC-019 needsKeyframe never set true → documented desync/I-frame loop dormant."
+`needsKeyframe` is cleared at the start of every `ingest()` (StarTechTileDecoder.swift:51) and never set true anywhere, so the `videoLoop` check (StarTechAdapter.swift:299-301) is dead code. Any stream corruption yields a permanently degraded display with no recovery. Source: `opencrashcart-pass-3-behavioral-contracts.md:24` (BC-019).
 
 ## Traceability
 
-| Field                           | Value |
-|---------------------------------|-------|
-| Source file:line (dormant defect) | Sources/OCCKit/Adapters/StarTech/StarTechTileDecoder.swift:51 (clears only); StarTechAdapter.swift:299-301 (dead check) |
-| Source file:line (v1.1.0 target) | StarTechTileDecoder.swift: new code in leftover path (~line 69) and processRecord (~line 124) |
-| Ingest BC                       | BC-019 (opencrashcart-pass-3-behavioral-contracts.md:24) |
-| Stories                         | by story-writer |
-| L2 Invariants                   | (none) |
-| Capability Anchor Justification | CAP-TBD — desync recovery / keyframe self-heal; capability file not yet produced |
-| Related BCs                     | BC-1.02.006 (reassembly), BC-1.02.008 (OOR skip), BC-1.02.007 (emission gate) |
+| Field | Value |
+|-------|-------|
+| Source file:line (dormant defect) | StarTechTileDecoder.swift:51 (clears only); StarTechAdapter.swift:299-301 (dead check) |
+| Source file:line (v1.1.0 target) | StarTechTileDecoder.swift: new invalid-skip counter in `processRecord` (~:118-125) + `staleIngestCount` in `ingest` (~:49-78); StarTechAdapter.swift: new `keyframeRequested` latch around :299-301 |
+| Ingest BC | BC-019 |
+| Adversary findings addressed | B2 (unreachable trigger), B3 (I-frame spam), B4 (incoherent OOR heuristic) |
+| Stories | (filled by story-writer) |
+| Capability Anchor Justification | CAP-TBD — desync recovery / keyframe self-heal |
+| Related BCs | BC-1.02.006 (reassembly), BC-1.02.008 (OOR skip), BC-1.02.007 (emission gate) |
 
 ## Source Evidence
 
-| Field            | Value |
-|------------------|-------|
-| Path             | Sources/OCCKit/Adapters/StarTech/StarTechTileDecoder.swift:45, 51; StarTechAdapter.swift:299-301 |
-| Confidence       | LOW (documented divergence in ingest pass; needsKeyframe wired but never fired — confirmed from direct source read) |
-| Extraction Date  | 2026-06-25 |
-| Evidence Type    | Source code analysis + ingest document divergence note |
+| Field | Value |
+|-------|-------|
+| Path | StarTechTileDecoder.swift:45,51,58-60,118-125; StarTechAdapter.swift:299-301 |
+| Confidence | Defect wiring: **HIGH** (verified — `needsKeyframe` wired but never fired). Fix trigger/latch design: **proposed v1.1.0** (must be implemented + tested; reachability of `tileY>=tilesHigh` confirmed from grid geometry 120×100 vs 7-bit field). |
+| Extraction Date | 2026-06-25 |
+| Evidence Type | Source code analysis + ingest divergence note; v1.1.0 design |
