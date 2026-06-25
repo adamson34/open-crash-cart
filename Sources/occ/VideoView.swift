@@ -1,5 +1,15 @@
 import AppKit
+import CoreImage
 import OCCKit
+
+/// Client-side image-enhancement filters applied to the displayed video (not the device).
+struct ImageEnhancement: Equatable {
+    var brightness: Double = 0     // -1…1   (CIColorControls)
+    var contrast: Double = 1       // 0.5…2
+    var sharpness: Double = 0      // 0…1    (CISharpenLuminance)
+    var grayscale: Bool = false
+    var isActive: Bool { brightness != 0 || contrast != 1 || sharpness != 0 || grayscale }
+}
 
 /// Receives translated input from the video view.
 @MainActor protocol VideoViewInput: AnyObject {
@@ -31,6 +41,11 @@ final class VideoView: NSView {
 
     private(set) var frameSize = CGSize(width: 1024, height: 768)
     private var lastImage: CGImage?
+
+    /// Display-only enhancement (brightness/contrast/sharpen/grayscale). Raw frames are kept
+    /// for snapshot/OCR; enhancement only affects what's shown.
+    var enhancement = ImageEnhancement()
+    private lazy var ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
     /// OCR region selection. `onRegionSelected` is called with the cropped frame (or nil if
     /// cancelled/empty) when the user finishes dragging a rectangle.
@@ -69,7 +84,35 @@ final class VideoView: NSView {
         frameSize = CGSize(width: frame.width, height: frame.height)
         guard let image = makeCGImage(frame) else { return }
         lastImage = image
-        layer?.contents = image
+        updateDisplayedImage()
+    }
+
+    /// Update the enhancement filters and re-render the current frame live.
+    func setEnhancement(_ e: ImageEnhancement) {
+        enhancement = e
+        updateDisplayedImage()
+    }
+
+    private func updateDisplayedImage() {
+        guard let raw = lastImage else { return }
+        layer?.contents = enhancement.isActive ? enhance(raw) : raw
+    }
+
+    private func enhance(_ cgImage: CGImage) -> CGImage {
+        var ci = CIImage(cgImage: cgImage)
+        if let color = CIFilter(name: "CIColorControls") {
+            color.setValue(ci, forKey: kCIInputImageKey)
+            color.setValue(enhancement.brightness, forKey: kCIInputBrightnessKey)
+            color.setValue(enhancement.contrast, forKey: kCIInputContrastKey)
+            color.setValue(enhancement.grayscale ? 0.0 : 1.0, forKey: kCIInputSaturationKey)
+            ci = color.outputImage ?? ci
+        }
+        if enhancement.sharpness > 0, let sharp = CIFilter(name: "CISharpenLuminance") {
+            sharp.setValue(ci, forKey: kCIInputImageKey)
+            sharp.setValue(enhancement.sharpness, forKey: kCIInputSharpnessKey)
+            ci = sharp.outputImage ?? ci
+        }
+        return ciContext.createCGImage(ci, from: ci.extent) ?? cgImage
     }
 
     /// PNG of the current screen for the snapshot button.

@@ -7,6 +7,7 @@ import AppKit
     func refreshScreen()
     func retuneVideo()
     func toggleVideoAdjust()
+    func toggleImageEnhance()
     func snapshot()
     func copyTextFromScreen()
     func mountMedia()
@@ -162,6 +163,7 @@ final class ToolbarStrip: NSView {
         stack.addArrangedSubview(button("arrow.clockwise", "Refresh screen", #selector(onRefresh)))
         stack.addArrangedSubview(button("wand.and.stars", "Auto-tune video", #selector(onRetune)))
         stack.addArrangedSubview(button("slider.horizontal.3", "Video adjustments", #selector(onAdjust)))
+        stack.addArrangedSubview(button("camera.filters", "Image enhancement (brightness/sharpen)", #selector(onEnhance)))
         stack.addArrangedSubview(button("camera", "Save snapshot", #selector(onSnap)))
         stack.addArrangedSubview(button("text.viewfinder", "Copy text from screen (OCR)", #selector(onOCR)))
         stack.addArrangedSubview(button("opticaldisc", "Mount disk image (ISO/IMG)", #selector(onMedia)))
@@ -185,6 +187,7 @@ final class ToolbarStrip: NSView {
     @objc private func onRefresh()  { actions?.refreshScreen() }
     @objc private func onRetune()   { actions?.retuneVideo() }
     @objc private func onAdjust()   { actions?.toggleVideoAdjust() }
+    @objc private func onEnhance()  { actions?.toggleImageEnhance() }
     @objc private func onSnap()     { actions?.snapshot() }
     @objc private func onOCR()      { actions?.copyTextFromScreen() }
     @objc private func onMedia()    { actions?.mountMedia() }

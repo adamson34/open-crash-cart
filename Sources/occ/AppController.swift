@@ -20,6 +20,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
 
     private var keyboardPanel: KeyboardPanel?
     private var adjustPanel: VideoAdjustPanel?
+    private var enhancePanel: ImageEnhancePanel?
     private var settingsController: SettingsWindowController?
     private var uvcMenu: NSMenu!
     private var latestAdjustments: [VideoAdjustment: Int] = [:]
@@ -338,6 +339,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         videoMenu.addItem(mi("Refresh Screen", #selector(menuRefresh), "r"))
         videoMenu.addItem(mi("Auto-Tune Video", #selector(menuAutoTune)))
         videoMenu.addItem(mi("Video Adjustments…", #selector(menuAdjust)))
+        videoMenu.addItem(mi("Image Enhancement…", #selector(menuEnhance)))
         videoMenu.addItem(.separator())
         let ddc = NSMenu(title: "Preferred Resolution (DDC)")
         for preset in DDCPreset.allCases {
@@ -439,6 +441,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     @objc private func menuRefresh()     { refreshScreen() }
     @objc private func menuAutoTune()    { retuneVideo() }
     @objc private func menuAdjust()      { toggleVideoAdjust() }
+    @objc private func menuEnhance()     { toggleImageEnhance() }
     @objc private func menuRecord()      { toggleRecording() }
 
     @objc private func menuDDC(_ sender: NSMenuItem) {
@@ -518,6 +521,14 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         rec.finish { [weak self] frames in
             DispatchQueue.main.async { self?.statusBar.setMessage("Saved recording (\(frames) frames).") }
         }
+    }
+
+    func toggleImageEnhance() {
+        if enhancePanel == nil {
+            enhancePanel = ImageEnhancePanel { [weak self] e in self?.videoView.setEnhancement(e) }
+        }
+        guard let panel = enhancePanel else { return }
+        if panel.isVisible { panel.orderOut(nil) } else { panel.present(relativeTo: window) }
     }
 
     func toggleVideoAdjust() {
