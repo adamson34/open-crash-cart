@@ -1,16 +1,16 @@
 ---
 document_type: behavioral-contract
 level: L3
-id: BC-1.05.014
-title: CH9329 Serial Port Discovery and Environment Override
-subsystem: SS-05
-capability: CAP-TBD
-origin: brownfield
-extracted_from: Sources/OCCKit/Adapters/UVC/CH9329.swift, Sources/OCCKit/Adapters/UVC/UVCAdapter.swift
-introduced: v1.0.0
-lifecycle_status: active
+version: "1.0"
+status: draft
 phase: 1a
-traces_to: domain-spec-L2.md
+traces_to: product-brief.md
+origin: brownfield
+extracted_from: "Sources/OCCKit/Adapters/UVC/CH9329.swift, Sources/OCCKit/Adapters/UVC/UVCAdapter.swift"
+subsystem: "SS-05"
+capability: CAP-TBD
+lifecycle_status: active
+introduced: v1.0.0
 ---
 
 # BC-1.05.014: CH9329 Serial Port Discovery and Environment Override

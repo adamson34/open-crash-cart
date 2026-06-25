@@ -1,16 +1,16 @@
 ---
 document_type: behavioral-contract
 level: L3
-id: BC-1.05.018
-title: VideoView Command-Modified Press Suppression and KeyUp Forwarding
-subsystem: SS-05
-capability: CAP-TBD
-origin: brownfield
-extracted_from: Sources/occ/VideoView.swift
-introduced: v1.0.0
-lifecycle_status: active
+version: "1.0"
+status: draft
 phase: 1a
-traces_to: domain-spec-L2.md
+traces_to: product-brief.md
+origin: brownfield
+extracted_from: "Sources/occ/VideoView.swift"
+subsystem: "SS-05"
+capability: CAP-TBD
+lifecycle_status: active
+introduced: v1.0.0
 ---
 
 # BC-1.05.018: VideoView Command-Modified Press Suppression and KeyUp Forwarding

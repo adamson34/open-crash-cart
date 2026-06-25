@@ -8,6 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: "Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift"
 subsystem: "SS-01"
+capability: CAP-TBD
 lifecycle_status: deprecated
 introduced: v1.0.0
 deprecated: v1.1.0-spec-revision

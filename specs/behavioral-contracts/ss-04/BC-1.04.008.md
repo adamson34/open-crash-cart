@@ -1,17 +1,16 @@
 ---
 document_type: behavioral-contract
 level: L3
-bc_id: BC-1.04.008
-title: "ProfileStore.firmwareDirectory — Immediate-Persist Setter and NSLock-Guarded Accessors"
+version: "1.0"
+status: draft
+phase: 1a
+traces_to: product-brief.md
 origin: brownfield
-subsystem: SS-04
+extracted_from: "Sources/OCCKit/Adapter/ProfileStore.swift"
+subsystem: "SS-04"
 capability: CAP-TBD
-introduced: v1.0.0
 lifecycle_status: active
-extracted_from:
-  - Sources/OCCKit/Adapter/ProfileStore.swift
-ingest_bc: BC-203
-domain_facts: [BC-203]
+introduced: v1.0.0
 ---
 
 # BC-1.04.008: ProfileStore.firmwareDirectory — Immediate-Persist Setter and NSLock-Guarded Accessors

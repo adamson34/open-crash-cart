@@ -8,6 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: ".github/workflows/ci.yml"
 subsystem: "SS-06"
+capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0
 ---

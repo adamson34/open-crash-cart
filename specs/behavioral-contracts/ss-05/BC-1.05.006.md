@@ -1,16 +1,16 @@
 ---
 document_type: behavioral-contract
 level: L3
-id: BC-1.05.006
-title: HID Keymap macOS-to-USB-HID Usage Translation
-subsystem: SS-05
-capability: CAP-TBD
-origin: brownfield
-extracted_from: Sources/OCCKit/Input/HIDKeymap.swift
-introduced: v1.0.0
-lifecycle_status: active
+version: "1.0"
+status: draft
 phase: 1a
-traces_to: domain-spec-L2.md
+traces_to: product-brief.md
+origin: brownfield
+extracted_from: "Sources/OCCKit/Input/HIDKeymap.swift"
+subsystem: "SS-05"
+capability: CAP-TBD
+lifecycle_status: active
+introduced: v1.0.0
 ---
 
 # BC-1.05.006: HID Keymap macOS-to-USB-HID Usage Translation

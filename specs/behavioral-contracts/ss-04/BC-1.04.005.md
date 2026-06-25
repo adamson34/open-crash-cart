@@ -1,17 +1,16 @@
 ---
 document_type: behavioral-contract
 level: L3
-bc_id: BC-1.04.005
-title: "ProfileStore Seed and Self-Heal — Missing/Corrupt vs. Empty-Array Distinction"
+version: "1.0"
+status: draft
+phase: 1a
+traces_to: product-brief.md
 origin: brownfield
-subsystem: SS-04
+extracted_from: "Sources/OCCKit/Adapter/ProfileStore.swift"
+subsystem: "SS-04"
 capability: CAP-TBD
-introduced: v1.0.0
 lifecycle_status: active
-extracted_from:
-  - Sources/OCCKit/Adapter/ProfileStore.swift
-ingest_bc: BC-200
-domain_facts: [BC-200]
+introduced: v1.0.0
 ---
 
 # BC-1.04.005: ProfileStore Seed and Self-Heal — Missing/Corrupt vs. Empty-Array Distinction

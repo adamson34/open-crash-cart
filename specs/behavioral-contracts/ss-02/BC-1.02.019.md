@@ -6,8 +6,8 @@ status: draft
 phase: 1a
 traces_to: product-brief.md
 origin: brownfield
-extracted_from: Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift
-subsystem: SS-02
+extracted_from: "Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift"
+subsystem: "SS-02"
 capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0

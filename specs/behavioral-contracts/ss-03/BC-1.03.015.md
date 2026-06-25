@@ -6,8 +6,8 @@ status: draft
 phase: 1a
 traces_to: product-brief.md
 origin: brownfield
-extracted_from: opencrashcart-pass-2-3-deep-panels-r2.md
-subsystem: SS-03
+extracted_from: "opencrashcart-pass-2-3-deep-panels-r2.md"
+subsystem: "SS-03"
 capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0

@@ -6,8 +6,8 @@ status: draft
 phase: 1a
 traces_to: product-brief.md
 origin: brownfield
-extracted_from: Sources/occ-connect/main.swift
-subsystem: SS-01
+extracted_from: "Sources/occ-connect/main.swift"
+subsystem: "SS-01"
 capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0

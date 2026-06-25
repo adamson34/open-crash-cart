@@ -1,17 +1,16 @@
 ---
 document_type: behavioral-contract
 level: L3
-bc_id: BC-1.04.012
-title: "SettingsWindow — New vs. Edit Profile Provenance (ID, Backend, builtIn)"
+version: "1.0"
+status: draft
+phase: 1a
+traces_to: product-brief.md
 origin: brownfield
-subsystem: SS-04
+extracted_from: "Sources/occ/SettingsWindow.swift"
+subsystem: "SS-04"
 capability: CAP-TBD
-introduced: v1.0.0
 lifecycle_status: active
-extracted_from:
-  - Sources/occ/SettingsWindow.swift
-ingest_bc: BC-131
-domain_facts: [BC-131]
+introduced: v1.0.0
 ---
 
 # BC-1.04.012: SettingsWindow — New vs. Edit Profile Provenance (ID, Backend, builtIn)

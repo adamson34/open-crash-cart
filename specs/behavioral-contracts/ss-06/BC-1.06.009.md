@@ -8,6 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: "Sources/OCCKit/Adapters/StarTech/StarTechSupport.swift"
 subsystem: "SS-06"
+capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.1.0
 ---

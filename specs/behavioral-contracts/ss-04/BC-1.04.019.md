@@ -1,17 +1,16 @@
 ---
 document_type: behavioral-contract
 level: L3
-bc_id: BC-1.04.019
-title: "Theme.padding — Dual-Clamp State Machine: Env/UserDefaults/Adjust/Reset with Persist and onChange"
+version: "1.0"
+status: draft
+phase: 1a
+traces_to: product-brief.md
 origin: brownfield
-subsystem: SS-04
+extracted_from: "Sources/occ/Theme.swift"
+subsystem: "SS-04"
 capability: CAP-TBD
-introduced: v1.0.0
 lifecycle_status: active
-extracted_from:
-  - Sources/occ/Theme.swift
-ingest_bc: BC-206
-domain_facts: [DF-204, BC-206]
+introduced: v1.0.0
 ---
 
 # BC-1.04.019: Theme.padding — Dual-Clamp State Machine: Env/UserDefaults/Adjust/Reset with Persist and onChange
