@@ -15,3 +15,6 @@ reverse/
 
 # Brownfield-ingest source copies (re-derivable; see .factory/reference-manifest.yaml)
 .reference/
+
+# Generated coverage report (uploaded to Codecov in CI)
+coverage.lcov
