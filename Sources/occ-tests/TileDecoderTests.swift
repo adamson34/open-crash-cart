@@ -56,4 +56,46 @@ func runTileDecoderTests(_ t: Harness) {
         let f = d.ingest(Array(full[200..<516]))!
         t.expectEqual(bgra(f, 8, 8).1, 0xFC, "reassembled tile decodes correctly")
     }
+
+    t.section("Keyframe self-heal on desync (BC-1.02.018)")
+
+    // A solid record with tileY ≥ 100 (tilesHigh) is always out-of-range garbage.
+    func oorRecord() -> [UInt8] { tileHeader(x: 0, y: 120, solid: true, first: false, word0: 0) }
+
+    do {  // clean transfer does not request a keyframe
+        let d = StarTechTileDecoder(); d.setActiveSize(width: 16, height: 16)
+        _ = d.ingest(tileHeader(x: 0, y: 0, solid: true, first: false, word0: 0xF800))
+        t.expect(!d.needsKeyframe, "clean in-range tile → no keyframe request")
+    }
+
+    do {  // a burst of out-of-range tiles in one transfer requests a keyframe
+        let d = StarTechTileDecoder(); d.setActiveSize(width: 16, height: 16)
+        var garbage: [UInt8] = []; for _ in 0..<8 { garbage += oorRecord() }
+        _ = d.ingest(garbage)
+        t.expect(d.needsKeyframe, "8 out-of-range records in one transfer → keyframe requested")
+    }
+
+    do {  // below the burst threshold does NOT request a keyframe
+        let d = StarTechTileDecoder(); d.setActiveSize(width: 16, height: 16)
+        var few: [UInt8] = []; for _ in 0..<7 { few += oorRecord() }
+        _ = d.ingest(few)
+        t.expect(!d.needsKeyframe, "7 out-of-range records (below threshold) → no keyframe")
+    }
+
+    do {  // sustained no-decode transfers eventually request a keyframe
+        let d = StarTechTileDecoder(); d.setActiveSize(width: 16, height: 16)
+        for _ in 0..<7 { _ = d.ingest(oorRecord()) }
+        t.expect(!d.needsKeyframe, "7 stale ingests → no keyframe yet")
+        _ = d.ingest(oorRecord())
+        t.expect(d.needsKeyframe, "8th stale ingest → keyframe requested")
+    }
+
+    do {  // a clean decode after desync clears the request (self-heal)
+        let d = StarTechTileDecoder(); d.setActiveSize(width: 16, height: 16)
+        var garbage: [UInt8] = []; for _ in 0..<8 { garbage += oorRecord() }
+        _ = d.ingest(garbage)
+        t.expect(d.needsKeyframe, "desync set needsKeyframe")
+        _ = d.ingest(tileHeader(x: 0, y: 0, solid: true, first: false, word0: 0xF800))
+        t.expect(!d.needsKeyframe, "clean decode clears needsKeyframe (self-heal)")
+    }
 }

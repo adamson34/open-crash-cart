@@ -38,6 +38,10 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
     // Cached status to emit only on change.
     private var lastStatus = AdapterStatus()
 
+    // Keyframe-on-desync latch (touched only on the video thread): at most one outstanding
+    // doIFrame request between clean decodes (BC-1.02.018).
+    private var keyframeRequested = false
+
     public init(device: DiscoveredDevice, profile: HardwareProfile? = nil,
                 decoder: StarTechVideoDecoding = StarTechTileDecoder()) {
         self.target = device
@@ -299,8 +303,15 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
                 if let frame = decoder.ingest(chunk) {
                     emit(.frame(frame))
                 }
+                // Request a keyframe on desync, but at most one outstanding between clean
+                // frames (BC-1.02.018) — avoids flooding the control queue under sustained desync.
                 if decoder.needsKeyframe {
-                    queue.enqueue(VSPack.command(.doIFrame), priority: .control)
+                    if !keyframeRequested {
+                        queue.enqueue(VSPack.command(.doIFrame), priority: .control)
+                        keyframeRequested = true
+                    }
+                } else {
+                    keyframeRequested = false
                 }
             } catch USBTransportError.timeout {
                 continue
