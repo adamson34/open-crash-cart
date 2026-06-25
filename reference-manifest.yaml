@@ -1,0 +1,9 @@
+repos:
+  - name: opencrashcart
+    url: https://github.com/adamson34/open-crash-cart
+    commit: 24244bf
+    branch: dev
+    ingested: 2026-06-25
+    depth: full
+    focus: "Native macOS USB crash-cart client — OCCKit core library + occ AppKit app + CLIs"
+    status: ingesting
