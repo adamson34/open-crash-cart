@@ -1,75 +1,86 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 phase: 1a
 traces_to: product-brief.md
 origin: brownfield
-extracted_from: "Sources/OCCKit/Adapters/StarTech/StarTechSupport.swift"
+extracted_from: "Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift"
 subsystem: "SS-06"
 lifecycle_status: active
 introduced: v1.1.0
 ---
-# BC-1.06.007: Harness Test Exists Verifying STATUS Message Parse, State Derivation, and bps Formula (Ingest BC-084)
+# BC-1.06.007: Harness Test Exists Verifying STATUS bps Formula and State Derivation (Ingest BC-084)
 
 ## Description
-A test section must exist in `occ-tests` that verifies StarTech STATUS message parsing for both the 29-byte (gen-1) and 35-byte (gen-2) wire formats. The test must cover: (1) correct field extraction from raw bytes; (2) adapter state derivation from parsed STATUS fields (e.g., active vs idle vs no-signal); and (3) the bits-per-second formula applied to the raw rate field. This is a v1.1.0 test-backfill requirement; the parsing existed in v1.0.0 code with no harness coverage.
+A test section must exist in `occ-tests` that verifies two pure computations from StarTech STATUS message parsing: (1) the bytes-per-second formula `bytesPerSecond = ticks > 0 ? Double(words) * 16.0 * 1000.0 / Double(ticks) : 0` (StarTechAdapter.swift:394); and (2) the `AdapterState` derivation from the parsed STATUS fields (`noVideo`, `fpgaLoaded`, `width`, `height`, `hz`). The `parseStatus` function itself is `private`; the fix is to extract both computations as pure public functions. The valid states are `.live(width:height:hz:)`, `.connecting`, and `.noVideo(NoVideoReason)` — there is no `.noSignal` state (prior spec drafts were wrong). This is a v1.1.0 test-backfill requirement.
 
 ## Preconditions
 1. A test function (e.g., `runStatusParseTests(_:)`) is registered in `main.swift`.
-2. The STATUS parse function or type is accessible from `occ-tests`.
-3. Golden-byte arrays for 29-byte (gen-1) and 35-byte (gen-2) STATUS messages are embedded in the test.
+2. **Public-API delta required — two extractions:**
+   - `public static func computeBytesPerSecond(words: UInt32, ticks: UInt16) -> Double` extracted from `StarTechAdapter` (or a public support type). Implements: `ticks > 0 ? Double(words) * 16.0 * 1000.0 / Double(ticks) : 0`.
+   - `public static func deriveState(fpgaLoaded: UInt8, noVideo: UInt8, width: Int, height: Int, hz: Int) -> AdapterState` extracted from the state-derivation logic at `StarTechAdapter.swift:378-386`. Implements: if `NoVideoReason(rawValue: noVideo) != .ok` → `.noVideo(reason)`; else if `fpgaLoaded != 0 && width > 0 && height > 0` → `.live(width:height:hz:)`; else → `.connecting`.
+3. `AdapterState` and `NoVideoReason` are already `public` (defined in `Sources/OCCKit/Adapter/Types.swift:73-83`).
 
 ## Postconditions
-1. Parsing a valid 29-byte STATUS message extracts all fields correctly (specific field values verified by test vectors below).
-2. Parsing a valid 35-byte STATUS message extracts all fields correctly.
-3. State derivation from a "no signal" STATUS byte pattern produces `AdapterState.noSignal` (or equivalent).
-4. State derivation from an "active video" STATUS byte pattern produces `AdapterState.live` (or equivalent).
-5. The bps formula: `bps = rawRate * <multiplier>` (exact multiplier confirmed from source) produces the expected integer for a known rawRate input.
-6. All assertions pass; `swift run occ-tests` exits 0.
+1. `computeBytesPerSecond(words:ticks:)` satisfies:
+   - `words=500, ticks=1000` → `500.0 * 16.0 * 1000.0 / 1000.0 = 8000.0`
+   - `words=0, ticks=0` → `0.0`
+   - `words=100, ticks=0` → `0.0` (ticks=0 guard)
+   - `words=1000, ticks=2000` → `8000.0`
+2. `deriveState(fpgaLoaded:noVideo:width:height:hz:)` satisfies:
+   - `fpgaLoaded=1, noVideo=0, width=1920, height=1080, hz=60` → `.live(width:1920, height:1080, hz:60)`
+   - `fpgaLoaded=0, noVideo=0, width=0, height=0, hz=0` → `.connecting`
+   - `fpgaLoaded=1, noVideo=<non-.ok raw value>, width=any, height=any, hz=any` → `.noVideo(reason)`
+3. All assertions pass; `swift run occ-tests` exits 0.
 
 ## Invariants
-1. STATUS parse is a pure function of the byte buffer; no device I/O occurs in this test.
-2. The 29-byte and 35-byte variants share the same field layout for the first 29 bytes; gen-2 adds 6 extra fields.
-3. The bps multiplier is a fixed constant embedded in `StarTechSupport.swift`; it must not be changed without updating this test.
+1. Both functions are pure: no device I/O, no mutable state, no `private` access required.
+2. The state set is exactly `{.disconnected, .connecting, .noVideo(NoVideoReason), .live(width:height:hz:)}` — `.noSignal` is NOT a valid state in this codebase.
+3. The bps formula constant `16.0 * 1000.0` is derived from the source at `StarTechAdapter.swift:394` and must not be changed without updating this contract.
+4. `ticks == 0` always produces `0.0` (guard prevents division by zero).
 
 ## Edge Cases
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | 29-byte buffer (gen-1) | Parsed fully; no out-of-bounds access |
-| EC-002 | 35-byte buffer (gen-2) | Parsed fully including extra 6 bytes |
-| EC-003 | Buffer shorter than 29 bytes | Parse returns `nil` or throws; does not crash |
-| EC-004 | rawRate = 0 | bps = 0 |
-| EC-005 | rawRate at maximum (0xFF or 0xFFFF depending on field width) | bps = maxRawRate * multiplier (no overflow check needed for test) |
-| EC-006 | STATUS byte pattern indicating no signal | `state == .noSignal` (or `.disconnected`) |
-| EC-007 | STATUS byte pattern indicating active stream | `state == .live` |
+| EC-001 | `ticks = 0`, any `words` | `computeBytesPerSecond` returns `0.0` |
+| EC-002 | `words = 0`, `ticks > 0` | Returns `0.0` |
+| EC-003 | `ticks = 1` (minimum non-zero) | Returns `Double(words) * 16000.0` |
+| EC-004 | `fpgaLoaded = 0` (FPGA not loaded) | `deriveState` returns `.connecting` regardless of width/height/hz |
+| EC-005 | `noVideo` raw value maps to `.ok` | State determined by `fpgaLoaded` + dimensions |
+| EC-006 | `noVideo` raw value maps to non-`.ok` `NoVideoReason` | Returns `.noVideo(reason)` regardless of dimensions |
+| EC-007 | `fpgaLoaded = 1`, `width = 0` | Returns `.connecting` (not `.live` because width not positive) |
 
 ## Canonical Test Vectors
-| Input | Expected Output | Category |
-|-------|----------------|----------|
-| Golden 29-byte gen-1 STATUS (constructed from source constants) | All fields match expected values; state and bps correct | happy-path |
-| Golden 35-byte gen-2 STATUS | All fields match including gen-2 extras | happy-path |
-| rawRate field = 100 in golden buffer | `bps == 100 * <multiplier>` | happy-path (bps formula) |
-| STATUS indicating no-signal state | `state == .noSignal` | edge (state derivation) |
-| Buffer of 28 bytes | Returns nil or error; no crash | error |
+| Function | Input | Expected Output | Category |
+|----------|-------|----------------|----------|
+| `computeBytesPerSecond` | `words=500, ticks=1000` | `8000.0` | happy-path |
+| `computeBytesPerSecond` | `words=1000, ticks=2000` | `8000.0` | happy-path |
+| `computeBytesPerSecond` | `words=100, ticks=0` | `0.0` | edge (ticks=0 guard) |
+| `computeBytesPerSecond` | `words=0, ticks=0` | `0.0` | edge |
+| `deriveState` | `fpgaLoaded=1, noVideo=0, width=1920, height=1080, hz=60` | `.live(width:1920, height:1080, hz:60)` | happy-path |
+| `deriveState` | `fpgaLoaded=0, noVideo=0, width=0, height=0, hz=0` | `.connecting` | happy-path |
+| `deriveState` | `fpgaLoaded=1, noVideo=<non-.ok>, width=1920, height=1080, hz=60` | `.noVideo(reason)` | edge (noVideo set) |
+| `deriveState` | `fpgaLoaded=1, noVideo=0, width=0, height=0, hz=0` | `.connecting` | edge (zero dimensions) |
 
 ## Error Handling
-Short buffers must not cause index-out-of-bounds crashes. The test should verify that parsing a short buffer produces a safe `nil` or error result, not a runtime crash.
+Both functions are total (no throws, no crashes). Short-buffer handling is in `parseStatus` (which returns early on unexpected size) — that is outside scope of this contract, which covers only the extracted pure computations.
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| Source file:line | `Sources/OCCKit/Adapters/StarTech/StarTechSupport.swift` (STATUS parse, state derivation, bps formula — exact lines TBD) |
+| Source file:line | `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift:394` (bps formula); `:378-386` (state derivation); `Sources/OCCKit/Adapter/Types.swift:73-83` (`AdapterState`, `NoVideoReason` definitions) |
 | Ingest BC | BC-084 ("STATUS parse 29/35B; bps formula; state derivation; on-change emit") — opencrashcart-pass-3-behavioral-contracts.md |
+| Public-API delta | Extract `public static func computeBytesPerSecond(words:ticks:) -> Double` and `public static func deriveState(fpgaLoaded:noVideo:width:height:hz:) -> AdapterState` |
 | Stories | TBD |
-| Capability Anchor Justification | STATUS message parsing and state derivation per Pass-3 BC-084 (MEDIUM confidence, code control-flow) |
+| Capability Anchor Justification | `capability: CAP-TBD` — STATUS message parsing and state derivation per Pass-3 BC-084; capability ID to be assigned after capabilities.md is updated |
 
 ## Source Evidence
 | Field | Value |
 |-------|-------|
-| Path | `Sources/OCCKit/Adapters/StarTech/StarTechSupport.swift` |
-| Confidence | MEDIUM (code control-flow; no pre-existing test) |
+| Path | `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift` |
+| Confidence | HIGH (formula and state logic read directly from lines 378-394) |
 | Extraction Date | 2026-06-25 |
 | Evidence Type | Code control-flow analysis (Pass-3 BC-084) |
 
@@ -78,7 +89,8 @@ Short buffers must not cause index-out-of-bounds crashes. The test should verify
 - BC-1.06.010 — coverage policy (depends on)
 
 ## Architecture Anchors
-- `Sources/OCCKit/Adapters/StarTech/StarTechSupport.swift` — STATUS parsing implementation
+- `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift:378-394` — state derivation and bps formula
+- `Sources/OCCKit/Adapter/Types.swift:73-83` — `AdapterState` and `NoVideoReason` enum definitions
 
 ## Story Anchor
 TBD
