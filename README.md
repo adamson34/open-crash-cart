@@ -7,7 +7,7 @@
 **A native macOS client for USB crash-cart adapters — open, clean-room, bring-your-own-firmware.**
 
 [![CI](https://github.com/adamson34/open-crash-cart/actions/workflows/ci.yml/badge.svg)](https://github.com/adamson34/open-crash-cart/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/adamson34/open-crash-cart/branch/main/graph/badge.svg)](https://codecov.io/gh/adamson34/open-crash-cart)
+[![codecov](https://codecov.io/gh/adamson34/open-crash-cart/graph/badge.svg)](https://codecov.io/gh/adamson34/open-crash-cart)
 [![Release](https://img.shields.io/github/v/release/adamson34/open-crash-cart?include_prereleases)](https://github.com/adamson34/open-crash-cart/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%2013%2B%20·%20Apple%20Silicon-lightgrey)
