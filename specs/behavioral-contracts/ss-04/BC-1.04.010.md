@@ -5,7 +5,7 @@ bc_id: BC-1.04.010
 title: "SettingsWindow — Empty Name Aborts Profile Save"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -65,7 +65,7 @@ No error or alert is presented to the user on empty-name abort. The dialog sheet
 | Source file:line | `Sources/occ/SettingsWindow.swift:228-229` |
 | Ingest BC | BC-129 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (profile name must not be empty) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

@@ -5,7 +5,7 @@ bc_id: BC-1.04.019
 title: "Theme.padding — Dual-Clamp State Machine: Env/UserDefaults/Adjust/Reset with Persist and onChange"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-006
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -89,7 +89,7 @@ No errors. `ProcessInfo.processInfo.environment["OCC_PADDING"].flatMap { Double(
 | Ingest BC | BC-206 (pass-2-3-deep-panels-r2.md) |
 | Ingest domain fact | DF-204 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (UI layout state consistency) |
-| Capability Anchor Justification | CAP-006 ("UI theme and layout customisation") |
+| Capability Anchor Justification | CAP-TBD ("UI theme and layout customisation") |
 
 ## Related BCs
 

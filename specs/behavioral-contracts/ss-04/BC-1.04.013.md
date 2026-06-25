@@ -5,7 +5,7 @@ bc_id: BC-1.04.013
 title: "SettingsWindow — Built-In Profiles Are Non-Deletable in UI"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -62,7 +62,7 @@ No error cases. The conditional is a simple `if !profile.builtIn { ... }` block.
 | Source file:line | `Sources/occ/SettingsWindow.swift:139-148` |
 | Ingest BC | BC-132 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (built-in profile deletion prevention) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

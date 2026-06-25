@@ -5,7 +5,7 @@ bc_id: BC-1.04.020
 title: "Single Source of Truth for Device Matching — AdapterRegistry and StarTechAdapter Derive from Built-In HardwareProfile (v1.1.0)"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.1.0
 lifecycle_status: active
 extracted_from:
@@ -81,7 +81,7 @@ No runtime errors. The refactor is a compile-time structural change. If `Profile
 | Source file:line (source of truth) | `Sources/OCCKit/Adapter/ProfileStore.swift:20-29` |
 | Ingest BC | BC-073 (pass-3-behavioral-contracts.md) |
 | L2 Invariants | DI-TBD (single source of truth for device identity) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

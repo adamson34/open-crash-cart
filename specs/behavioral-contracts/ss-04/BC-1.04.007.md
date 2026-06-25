@@ -5,7 +5,7 @@ bc_id: BC-1.04.007
 title: "ProfileStore.upsert() — ID-Keyed Replace-or-Append Write-Through"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -68,7 +68,7 @@ domain_facts: [BC-202]
 | Source file:line | `Sources/OCCKit/Adapter/ProfileStore.swift:69-75` |
 | Ingest BC | BC-202 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (profile store consistency) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

@@ -5,7 +5,7 @@ bc_id: BC-1.04.016
 title: "DDCPreset — 4-Case Enum with rawValue 0..3"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-005
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -66,7 +66,7 @@ No errors. Enum construction from rawValue uses optional (`DDCPreset?`); out-of-
 | Source file:line | `Sources/OCCKit/Adapter/Types.swift:122-132` |
 | Ingest domain fact | DF-202 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (DDC preset wire values are stable protocol constants) |
-| Capability Anchor Justification | CAP-005 ("Video display control and DDC preset management") |
+| Capability Anchor Justification | CAP-TBD ("Video display control and DDC preset management") |
 
 ## Related BCs
 

@@ -8,7 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: opencrashcart-pass-2-3-deep-panels-r2.md
 subsystem: SS-03
-capability: CAP-ADJUST
+capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0
 ---
@@ -84,7 +84,7 @@ No error conditions. `allowsTickMarkValuesOnly` enforces valid integer values at
 | Ingest BC | BC-208 (pass-2-3-deep-panels-r2.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-ADJUST ("Tune analog video parameters (sharpness, phase, horizontal, vertical, noise) via per-adjustment sliders") |
+| Capability Anchor Justification | CAP-TBD ("Tune analog video parameters (sharpness, phase, horizontal, vertical, noise) via per-adjustment sliders") |
 
 ## Source Evidence
 

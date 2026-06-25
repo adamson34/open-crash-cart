@@ -5,7 +5,7 @@ bc_id: BC-1.04.003
 title: "HardwareProfile JSON Round-Trip Fidelity and Equatable Conformance"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -72,7 +72,7 @@ Test vector pinned at `ProfileTests.swift:22-24`.
 | Test file:line | `Sources/occ-tests/ProfileTests.swift:22-24` |
 | Ingest BC | BC-072 (pass-3-behavioral-contracts.md) |
 | L2 Invariants | DI-TBD (on-disk format stability) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

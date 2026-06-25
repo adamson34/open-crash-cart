@@ -8,7 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: opencrashcart-pass-3-deep-app-layer.md
 subsystem: SS-03
-capability: CAP-ENHANCE
+capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0
 ---
@@ -76,7 +76,7 @@ introduced: v1.0.0
 | Ingest BC | BC-125 (pass-3-deep-app-layer.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-ENHANCE ("Apply client-side display-only image enhancements to the video stream") |
+| Capability Anchor Justification | CAP-TBD ("Apply client-side display-only image enhancements to the video stream") |
 
 ## Source Evidence
 

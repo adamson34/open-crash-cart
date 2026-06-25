@@ -8,7 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: opencrashcart-pass-3-deep-app-layer.md
 subsystem: SS-03
-capability: CAP-RECORD
+capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0
 ---
@@ -84,7 +84,7 @@ This contract covers two related behaviors: (1) `Recorder.finish()` short-circui
 | Ingest BC | BC-138, BC-139 (pass-3-deep-app-layer.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-RECORD ("Record the decoded video stream to an H.264 .mov file") |
+| Capability Anchor Justification | CAP-TBD ("Record the decoded video stream to an H.264 .mov file") |
 
 ## Source Evidence
 

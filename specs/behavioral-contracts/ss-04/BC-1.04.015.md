@@ -5,7 +5,7 @@ bc_id: BC-1.04.015
 title: "SettingsWindow — Firmware Import: Copy into App Support and Repoint Store Directory"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -72,7 +72,7 @@ All `FileManager` operations and `ProfileStore.firmwareDirectory` assignment use
 | Source file:line | `Sources/occ/SettingsWindow.swift:184-203` |
 | Ingest BC | BC-134 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (firmware import reliability) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

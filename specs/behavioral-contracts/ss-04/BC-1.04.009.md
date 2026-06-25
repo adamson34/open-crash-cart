@@ -5,7 +5,7 @@ bc_id: BC-1.04.009
 title: "ProfileStore.writeToDisk() — Pretty+SortedKeys JSON, Silent Write Failure"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -69,7 +69,7 @@ All errors are suppressed via `try?`. There is no error notification mechanism, 
 | Source file:line | `Sources/OCCKit/Adapter/ProfileStore.swift:84-91` |
 | Ingest BC | BC-204 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (profile persistence) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

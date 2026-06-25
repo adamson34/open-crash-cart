@@ -5,7 +5,7 @@ bc_id: BC-1.04.012
 title: "SettingsWindow — New vs. Edit Profile Provenance (ID, Backend, builtIn)"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -69,7 +69,7 @@ No errors. UUID generation never fails in Swift on macOS.
 | Source file:line | `Sources/occ/SettingsWindow.swift:233-241` |
 | Ingest BC | BC-131 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (profile identity immutability through edit) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

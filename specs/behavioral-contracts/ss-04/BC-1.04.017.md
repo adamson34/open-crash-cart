@@ -5,7 +5,7 @@ bc_id: BC-1.04.017
 title: "setDDCPreset — Fire-and-Forget with getVersions Side Effect, Not Persisted"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-005
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -66,7 +66,7 @@ No error handling at this layer. If the device does not acknowledge the DDC comm
 | Source file:line | `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift:121-125` |
 | Ingest domain fact | DF-202, DF-203 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (DDC commands are stateless) |
-| Capability Anchor Justification | CAP-005 ("Video display control and DDC preset management") |
+| Capability Anchor Justification | CAP-TBD ("Video display control and DDC preset management") |
 
 ## Related BCs
 

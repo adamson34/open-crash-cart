@@ -5,7 +5,7 @@ bc_id: BC-1.04.014
 title: "SettingsWindow — Live USB Presence Dot, Graceful Enumeration Failure"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -69,7 +69,7 @@ Each profile row in the Settings window shows a 10×10 colored dot indicating wh
 | Source file:line | `Sources/occ/SettingsWindow.swift:110-125` |
 | Ingest BC | BC-133 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (UI graceful degradation on hardware error) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

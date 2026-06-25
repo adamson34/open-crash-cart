@@ -8,7 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: opencrashcart-pass-2-3-deep-panels-r2.md
 subsystem: SS-03
-capability: CAP-PANELS
+capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0
 ---
@@ -68,7 +68,7 @@ No errors. `orderFront(nil)` is unconditional.
 | Ingest BC | BC-211 (pass-2-3-deep-panels-r2.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-PANELS ("Display floating utility panels (keyboard, video adjust, image enhance) anchored to the main window without stealing key focus") |
+| Capability Anchor Justification | CAP-TBD ("Display floating utility panels (keyboard, video adjust, image enhance) anchored to the main window without stealing key focus") |
 
 ## Source Evidence
 

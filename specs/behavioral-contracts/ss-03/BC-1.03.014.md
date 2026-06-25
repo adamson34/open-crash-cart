@@ -8,7 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: opencrashcart-pass-2-3-deep-panels-r2.md
 subsystem: SS-03
-capability: CAP-ENHANCE
+capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0
 ---
@@ -78,7 +78,7 @@ No errors possible in slider manipulation. `onChange` closure failures are the c
 | Ingest BC | BC-207 (pass-2-3-deep-panels-r2.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-ENHANCE ("Apply client-side display-only image enhancements to the video stream") |
+| Capability Anchor Justification | CAP-TBD ("Apply client-side display-only image enhancements to the video stream") |
 
 ## Source Evidence
 

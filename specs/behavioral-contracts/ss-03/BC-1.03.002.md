@@ -8,7 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: opencrashcart-pass-3-deep-app-layer.md
 subsystem: SS-03
-capability: CAP-OCR
+capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0
 ---
@@ -66,7 +66,7 @@ No errors are raised by the sorting step; it is pure data transformation on the 
 | Ingest BC | BC-141 (pass-3-deep-app-layer.md) |
 | Stories | TBD |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-OCR ("Run Vision OCR on a cropped screen region and copy result to clipboard") |
+| Capability Anchor Justification | CAP-TBD ("Run Vision OCR on a cropped screen region and copy result to clipboard") |
 
 ## Source Evidence
 

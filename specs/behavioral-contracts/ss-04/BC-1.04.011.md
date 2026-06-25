@@ -5,7 +5,7 @@ bc_id: BC-1.04.011
 title: "SettingsWindow — CSV Field Parsing, Firmware Default, and Profile Construction"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -73,7 +73,7 @@ No errors are raised. Invalid VID/PID strings are silently stored; the profile w
 | Source file:line | `Sources/occ/SettingsWindow.swift:230-241` |
 | Ingest BC | BC-130 (pass-3-deep-app-layer.md) |
 | L2 Invariants | DI-TBD (profile field integrity) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

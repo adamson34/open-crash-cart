@@ -8,7 +8,7 @@ traces_to: product-brief.md
 origin: brownfield
 extracted_from: opencrashcart-pass-3-deep-app-layer.md
 subsystem: SS-03
-capability: CAP-RECORD
+capability: CAP-TBD
 lifecycle_status: active
 introduced: v1.0.0
 ---
@@ -71,7 +71,7 @@ No throws. The `guard input.isReadyForMoreMediaData, let pool = adaptor.pixelBuf
 | Ingest BC | BC-136 (pass-3-deep-app-layer.md) |
 | Stories | (filled by story-writer) |
 | L2 Invariants | N/A (UI-layer contract) |
-| Capability Anchor Justification | CAP-RECORD ("Record the decoded video stream to an H.264 .mov file") |
+| Capability Anchor Justification | CAP-TBD ("Record the decoded video stream to an H.264 .mov file") |
 
 ## Source Evidence
 

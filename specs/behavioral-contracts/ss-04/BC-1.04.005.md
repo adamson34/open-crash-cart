@@ -5,7 +5,7 @@ bc_id: BC-1.04.005
 title: "ProfileStore Seed and Self-Heal — Missing/Corrupt vs. Empty-Array Distinction"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-004
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -78,7 +78,7 @@ domain_facts: [BC-200]
 | Source file:line | `Sources/OCCKit/Adapter/ProfileStore.swift:37-45` |
 | Ingest BC | BC-200 (pass-2-3-deep-panels-r2.md) |
 | L2 Invariants | DI-TBD (store must always have at least one profile) |
-| Capability Anchor Justification | CAP-004 ("Hardware profile management and device matching") |
+| Capability Anchor Justification | CAP-TBD ("Hardware profile management and device matching") |
 
 ## Related BCs
 

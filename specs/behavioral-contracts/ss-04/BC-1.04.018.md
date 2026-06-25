@@ -5,7 +5,7 @@ bc_id: BC-1.04.018
 title: "MISC Video Adjustment — Encode, Clamp [-128..255], Save, and Reset"
 origin: brownfield
 subsystem: SS-04
-capability: CAP-005
+capability: CAP-TBD
 introduced: v1.0.0
 lifecycle_status: active
 extracted_from:
@@ -80,7 +80,7 @@ No errors. If `miscIndex` returns `nil` (only possible for a future unimplemente
 | Source file:line | `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift:93-119` |
 | Ingest BC | BC-085 (pass-3-behavioral-contracts.md) |
 | L2 Invariants | DI-TBD (video adjustment encode correctness) |
-| Capability Anchor Justification | CAP-005 ("Video display control and DDC preset management") |
+| Capability Anchor Justification | CAP-TBD ("Video display control and DDC preset management") |
 
 ## Related BCs
 
