@@ -1,9 +1,9 @@
 ---
-pipeline: PHASE-0-COMPLETE
-phase: brownfield-ingest-done
+pipeline: PHASE-1
+phase: phase-1
 product: opencrashcart
 mode: brownfield
-timestamp: 2026-06-25T14:00:00Z
+timestamp: 2026-06-25T14:10:00Z
 ---
 
 # OpenCrashCart — Factory State
@@ -18,6 +18,8 @@ Artifacts: .factory/semport/opencrashcart/
 - pass-8 final synthesis (with P0/P1/P2/P3 lessons backlog)
 
 Coverage: 45/45 files, ~140 behavioral contracts, ~40 entities, 41 NFRs, ~24 conventions.
+
+Phase 1 (brief) IN PROGRESS — product-brief.md created (status: draft).
 
 NEXT: /create-brief or /create-domain-spec to crystallize specs, or address the P1 backlog
 in pass-8 synthesis (Disconnect-auto-undo, dormant needsKeyframe, stuck OCR status, dual
