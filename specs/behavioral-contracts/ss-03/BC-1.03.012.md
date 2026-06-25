@@ -32,11 +32,9 @@ This is the v1.1.0 change contract. In v1.0.0, `recognizeText(in:completion:)` u
 
 **v1.1.0 (target behavior)**:
 - The `perform` call is wrapped in a `do/catch` block (or equivalent error-aware API).
-- On catch, the `completion` closure is called — either with an empty string and a side-channel error propagation, OR via a refactored signature that passes a `Result<String, Error>`.
-- The `handleOCR` caller (or an updated completion handler) calls `statusBar.setMessage(...)` with an error-indicating message.
+- On catch, the failure is surfaced via an **explicit error channel** — a refactored completion signature passing a `Result<String, Error>` (or a dedicated failure callback). **The empty-string path MUST NOT be reused to signal failure (adversary M1):** collapsing a real Vision error into `""` would make `handleOCR` show "No text found in the selection." for a genuine OCR crash, masking the error.
+- `handleOCR` distinguishes three outcomes, each with a distinct status: success → "Copied N characters…"; genuinely-empty recognition → "No text found in the selection."; **failure → a dedicated error message** (e.g. "OCR failed: <reason>").
 - The status is no longer stuck at "Reading text...".
-- If the error is propagated as an empty string result, `handleOCR` shows "No text found in the selection." (existing empty-text path handles it gracefully).
-- If a new `Result`-based API is used, `handleOCR` shows a dedicated error message (e.g., "OCR failed.").
 
 **v1.0.0 (defect, for documentation)**:
 - `try?` discards the error silently.
@@ -48,6 +46,7 @@ This is the v1.1.0 change contract. In v1.0.0, `recognizeText(in:completion:)` u
 
 - After any OCR attempt (success, no-text, or failure), the "Reading text..." status is always replaced before the operation is considered complete.
 - The UI is never left in a permanently-blocked "Reading text..." state.
+- **Failure and genuinely-empty results are distinguishable** at the `handleOCR` layer — a Vision/perform error never presents as the empty-text outcome.
 
 ## Edge Cases
 
