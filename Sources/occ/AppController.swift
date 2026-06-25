@@ -674,18 +674,24 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     private func handleOCR(_ image: CGImage?) {
         guard let image else { statusBar.setMessage("OCR cancelled."); return }
         statusBar.setMessage("Reading text…")
-        recognizeText(in: image) { [weak self] text in
+        recognizeText(in: image) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self else { return }
-                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else {
-                    self.statusBar.setMessage("No text found in the selection.")
-                    return
+                switch result {
+                case .failure(let error):
+                    // A real OCR failure must not masquerade as "no text found" (BC-1.03.012).
+                    self.statusBar.setMessage("OCR failed: \(error.localizedDescription)")
+                case .success(let text):
+                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else {
+                        self.statusBar.setMessage("No text found in the selection.")
+                        return
+                    }
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(trimmed, forType: .string)
+                    let n = trimmed.count
+                    self.statusBar.setMessage("Copied \(n) character\(n == 1 ? "" : "s") from screen to clipboard.")
                 }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(trimmed, forType: .string)
-                let n = trimmed.count
-                self.statusBar.setMessage("Copied \(n) character\(n == 1 ? "" : "s") from screen to clipboard.")
             }
         }
     }
