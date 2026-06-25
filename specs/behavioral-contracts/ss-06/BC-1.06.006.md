@@ -27,8 +27,8 @@ The pure `firmwareSearchPaths(profileDir:env:storeDir:appSupportDir:vendorPaths:
 
 | Tier | Input parameter | Condition |
 |------|----------------|-----------|
-| 1 | `profileDir` | included if non-nil and non-empty |
-| 2 | `env` (`OCC_FIRMWARE_DIR`) | included if non-nil and non-empty |
+| 1 | `profileDir` | included if non-nil (source appends `extra` without empty-filtering) |
+| 2 | `env` (`OCC_FIRMWARE_DIR`) | included if non-nil ONLY (source does a nil-check, NO `.isEmpty` guard at StarTechFirmware.swift:34; an empty string is included as-is) |
 | 3 | `storeDir` (`ProfileStore.shared.firmwareDirectory`) | included if non-nil and non-empty |
 | 4 | `appSupportDir` (`ProfileStore.shared.applicationSupportFirmwareDir`) | always included |
 | 5 | `/Applications/USB Crash Cart Adapter.app/Contents/Resources/data` | always included (from `vendorPaths[0]`) |
@@ -51,7 +51,8 @@ Assertions verified by test:
 ## Edge Cases
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | `profileDir` is non-nil, non-empty | Profile dir is index 0 in result |
+| EC-001 | `profileDir` is non-nil (incl. empty string) | Profile dir is index 0 in result |
+| EC-007 | `env` is empty string "" | Included as-is (faithful to source nil-only check) |
 | EC-002 | `profileDir` nil, `env` non-nil | Env path is index 0 |
 | EC-003 | `profileDir` nil, `env` nil, `storeDir` non-nil | Store dir is index 0 |
 | EC-004 | All optional inputs nil/empty | Result is `[appSupportDir] + vendorPaths` (4 items) |
