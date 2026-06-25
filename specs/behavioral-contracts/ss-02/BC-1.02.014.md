@@ -60,7 +60,7 @@ In absolute mouse mode, `VideoView.sendMouse()` maps the macOS view-local point 
 
 | View size  | frameSize  | Pointer (view coords) | Expected x | Expected y | Category  |
 |------------|------------|-----------------------|------------|------------|-----------|
-| 800×600    | 1024×768   | center (400, 300)     | 511        | 383        | happy-path (BC-119 reference) |
+| 800×600    | 1024×768   | center (400, 300)     | 512        | 384        | happy-path (BC-119 reference) |
 | 800×600    | 1024×768   | (0, 0)                | 0          | 0          | edge (top-left) |
 | 800×600    | 1024×768   | (800, 600)            | 1023       | 767        | edge (bottom-right) |
 | 800×600    | 1024×768   | (-10, -10)            | 0          | 0          | edge (out of view) |

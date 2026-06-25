@@ -44,7 +44,7 @@ The StarTech tile codec encodes tile position and type in two 16-bit little-endi
 | EC-ID  | Scenario                          | Expected Outcome                    |
 |--------|-----------------------------------|-------------------------------------|
 | EC-001 | word1 = 0x0000                    | tileX=0, tileY=0, isSolid=false     |
-| EC-002 | word1 = 0x7F00 (tileX=0, tileY=127, solid=0) | tileX=0, tileY=127        |
+| EC-002 | word1 = 0x7F00 (tileX=0, tileY=126, solid=0) | tileX=0, tileY=126        |
 | EC-003 | word1 = 0x407F (tileX=127, tileY=0, solid=0) | tileX=127, tileY=0        |
 | EC-004 | word1 = 0x4000 (solid flag only)  | tileX=0, tileY=0, isSolid=true      |
 | EC-005 | word1 = 0xFFFF (all bits set)     | tileX=127, tileY=127, isSolid=true  |

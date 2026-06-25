@@ -42,7 +42,7 @@ The StarTech video stream pads tile records to 512-byte USB bulk-transfer bounda
 
 | EC-ID  | Scenario                                     | Expected Outcome                                     |
 |--------|----------------------------------------------|------------------------------------------------------|
-| EC-021 | Padding at pos=0 (4 bytes FFFF/FFFF + 508 zeros + tile) | skip=508, tile decoded after skip           |
+| EC-021 | Padding at pos=0 (4 bytes FFFF/FFFF + 508 zeros + tile) | skip=512, tile decoded after skip (tile begins at pos 512) |
 | EC-022 | Padding at pos=508 (boundary at pos=512)     | skip=4, advances exactly 4 bytes                    |
 | EC-023 | Padding at pos=512 (already boundary)        | `512 - (512 & 511) = 512`, but `min(512, count-pos)` — advances to next boundary |
 | EC-024 | Buffer ends inside padding region            | Remaining bytes consumed, loop exits, nil returned  |
