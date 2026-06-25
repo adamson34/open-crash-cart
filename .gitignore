@@ -9,3 +9,6 @@ dist/
 # code, firmware/FPGA blobs, and the codec binary (their IP). Our own clean-room protocol
 # specs live in docs/. Keeping this fully local keeps the repo clean-room and publishable.
 reverse/
+
+# VSDD factory worktree (lives on the factory-artifacts orphan branch)
+.factory/
