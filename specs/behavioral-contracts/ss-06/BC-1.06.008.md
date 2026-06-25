@@ -1,69 +1,77 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 phase: 1a
 traces_to: product-brief.md
 origin: brownfield
-extracted_from: "Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift"
+extracted_from: "Sources/OCCKit/Adapters/UVC/UVCAdapter.swift"
 subsystem: "SS-06"
 lifecycle_status: active
 introduced: v1.1.0
 ---
-# BC-1.06.008: Harness Test Exists Verifying CH9329 Mouse Coalescing Latest-Wins (Ingest BC-036)
+# BC-1.06.008: Harness Test Exists Verifying CH9329 Mouse Coalescing Latest-Wins via Pure MouseCoalescer (Ingest BC-036)
 
 ## Description
-A test section must exist in `occ-tests` that verifies CH9329 mouse event coalescing: when multiple mouse events are enqueued before the next USB flush, only the most-recently-enqueued event's position and button state are transmitted (latest-wins). Earlier enqueued events in the same flush window are silently discarded. This is a v1.1.0 test-backfill requirement; the coalescing logic existed in v1.0.0 with no harness coverage.
+A test section must exist in `occ-tests` that verifies CH9329 mouse event coalescing: when multiple mouse events are stored before the next drain, only the most-recently-stored event is returned (latest-wins). Earlier stored events are silently discarded. The coalescing logic lives in `UVCAdapter` (NOT `StarTechAdapter`) — specifically `private var pendingMouse: MouseEvent?` at `UVCAdapter.swift:45`, set unconditionally in `send(mouse:)` at line 144 and drained by `drainMouse()` at lines 151-156. Prior spec drafts misattributed this to `StarTechAdapter`, whose `send(mouse:)` simply enqueues per-event without coalescing. The real adapter wraps the coalescing behind an async `inputQueue` (DispatchQueue) and a CH9329 gate, making it untestable synchronously as-is. The fix is to extract a pure synchronous `MouseCoalescer` type. This is a v1.1.0 test-backfill requirement.
 
 ## Preconditions
 1. A test function (e.g., `runInputCoalescingTests(_:)`) is registered in `main.swift`.
-2. The mouse coalescing mechanism (a stored property that overwrites on each enqueue) is testable in isolation from the serial port / USB hardware.
-3. The test can enqueue multiple `MouseEvent` values and inspect the coalesced result without performing real I/O.
+2. **Public-API delta required:** Extract a new `public final class MouseCoalescer` with:
+   - `public func store(_ event: MouseEvent)` — unconditionally overwrites `pendingMouse`.
+   - `public func drain() -> MouseEvent?` — returns and clears `pendingMouse`; returns `nil` if nothing pending.
+   Both operations are synchronous and thread-safe (NSLock internally). `UVCAdapter` replaces its `pendingMouse: MouseEvent?` stored property with an instance of `MouseCoalescer`. The async `inputQueue` dispatch and CH9329 gate remain in `UVCAdapter`; they are outside scope of this BC.
+3. The test operates on `MouseCoalescer` directly — no serial port, no DispatchQueue, no CH9329, no `UVCAdapter` instance required.
 
 ## Postconditions
-1. When three `MouseEvent` values are enqueued (A, B, C), only event C is observed in the pending-send state.
-2. Events A and B are not present in any pending buffer after C is enqueued.
-3. A `flush()` (or equivalent drain call) sends exactly one mouse packet derived from event C.
-4. All assertions pass; `swift run occ-tests` exits 0.
+1. When `store(A)`, `store(B)`, `store(C)` are called in sequence, `drain()` returns `C`.
+2. After draining `C`, a second call to `drain()` returns `nil`.
+3. `drain()` on a freshly constructed `MouseCoalescer` (nothing stored) returns `nil`.
+4. `store(A)` followed immediately by `drain()` returns `A`; subsequent `drain()` returns `nil`.
+5. All assertions pass; `swift run occ-tests` exits 0.
 
 ## Invariants
-1. Coalescing is latest-wins: each new event unconditionally overwrites the previous pending event.
-2. An enqueued mouse event that is never followed by a flush is never transmitted; the coalesced state persists until the next flush.
-3. Mouse coalescing is independent of keyboard events (keyboard events are not coalesced).
+1. Coalescing is latest-wins: each `store` call unconditionally overwrites the previous pending event.
+2. `drain()` is destructive: calling it twice returns the event on the first call and `nil` on the second.
+3. `MouseCoalescer` is a pure synchronous object — no DispatchQueue, no async work, no CH9329 dependency.
+4. The real `UVCAdapter` wraps `MouseCoalescer` behind its `inputQueue` for thread safety at the adapter level — that wrapper behavior is not tested by this BC.
+5. Mouse coalescing is independent of keyboard events (keyboard events are not coalesced in either adapter).
 
 ## Edge Cases
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Single event enqueued, then flushed | That event is transmitted as-is |
-| EC-002 | Two events enqueued before flush | Only the second event is transmitted |
-| EC-003 | Ten events enqueued before flush | Only the tenth event is transmitted |
-| EC-004 | Event enqueued, flushed, then new event enqueued | Second flush transmits the new event (no stale coalescing from prior flush) |
-| EC-005 | No events enqueued | Flush sends nothing (no spurious mouse packet) |
+| EC-001 | Single event stored, then drained | Returns that event; second drain returns nil |
+| EC-002 | Two events stored before drain | Only the second event is returned |
+| EC-003 | Ten events stored before drain | Only the tenth event is returned |
+| EC-004 | Drain, then store new event, then drain | Second drain returns the new event (no stale carry-over) |
+| EC-005 | Nothing stored, drain called | Returns nil (no spurious event) |
 
 ## Canonical Test Vectors
-| Input | Expected Output | Category |
-|-------|----------------|----------|
-| Enqueue `MouseEvent(x:10, y:20)`, `MouseEvent(x:30, y:40)`, `MouseEvent(x:50, y:60)` | Pending state = `MouseEvent(x:50, y:60)` | happy-path (latest-wins) |
-| Enqueue one event, flush, enqueue another event, flush | Each flush transmits exactly the one event enqueued since the last flush | happy-path (per-flush coalescing) |
-| No events enqueued, flush | No mouse packet emitted | edge (empty flush) |
+| Input sequence | Expected `drain()` result | Category |
+|---------------|--------------------------|----------|
+| `store(MouseEvent(x:10,y:20))`, `store(MouseEvent(x:30,y:40))`, `store(MouseEvent(x:50,y:60))`, then `drain()` | `MouseEvent(x:50, y:60)` | happy-path (latest-wins) |
+| After above drain, call `drain()` again | `nil` | happy-path (destructive drain) |
+| Fresh coalescer, `drain()` | `nil` | edge (empty) |
+| `store(A)`, `drain()` → A, `store(B)`, `drain()` → B | Each drain returns its respective event | happy-path (per-flush independence) |
 
 ## Error Handling
-Mouse coalescing does not produce errors. A test assertion failure (wrong event transmitted) increments `Harness.failed` and causes `exit(1)`.
+`MouseCoalescer` does not throw. A test assertion failure (wrong event or non-nil when nil expected) increments `Harness.failed` and causes `exit(1)`.
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| Source file:line | `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift` or `Sources/OCCKit/Adapters/UVC/CH9329.swift` (coalescing write, exact lines TBD) |
+| Source file:line | `Sources/OCCKit/Adapters/UVC/UVCAdapter.swift:44-45` (`mouseLock`, `pendingMouse` — the coalescing state); `:141-148` (`send(mouse:)` — unconditional overwrite); `:151-156` (`drainMouse()` — read-and-clear) |
 | Ingest BC | BC-036 ("mouse coalescing latest-wins") — opencrashcart-pass-3-behavioral-contracts.md |
+| Public-API delta | Extract `public final class MouseCoalescer` with `store(_:)` and `drain() -> MouseEvent?`; anchor is `UVCAdapter`, NOT `StarTechAdapter` |
 | Stories | TBD |
-| Capability Anchor Justification | Mouse coalescing behavior per Pass-3 BC-036 (MEDIUM confidence, code control-flow) |
+| Capability Anchor Justification | `capability: CAP-TBD` — mouse coalescing behavior per Pass-3 BC-036; capability ID to be assigned after capabilities.md is updated |
 
 ## Source Evidence
 | Field | Value |
 |-------|-------|
-| Path | `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift` (primary); `Sources/OCCKit/Adapters/UVC/CH9329.swift` (UVC path) |
-| Confidence | MEDIUM (code control-flow; no pre-existing test) |
+| Path | `Sources/OCCKit/Adapters/UVC/UVCAdapter.swift` |
+| Confidence | HIGH (coalescing state and logic read directly from lines 44-45, 141-156) |
 | Extraction Date | 2026-06-25 |
 | Evidence Type | Code control-flow analysis (Pass-3 BC-036) |
 
@@ -73,8 +81,8 @@ Mouse coalescing does not produce errors. A test assertion failure (wrong event 
 - BC-1.06.010 — coverage policy (depends on)
 
 ## Architecture Anchors
-- `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift` — adapter coalescing logic
-- `Sources/OCCKit/Adapters/UVC/CH9329.swift` — UVC CH9329 coalescing
+- `Sources/OCCKit/Adapters/UVC/UVCAdapter.swift:44-156` — coalescing state and drain logic (source of extraction)
+- `Sources/OCCKit/Adapters/StarTech/StarTechAdapter.swift` — does NOT coalesce mouse events; per-event enqueue only
 
 ## Story Anchor
 TBD
