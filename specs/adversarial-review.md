@@ -97,3 +97,13 @@ All BLOCKING, HIGH, MEDIUM, and LOW items were addressed in separate commits on 
 
 Baseline (existing-behavior) contracts were already verified trustworthy (22/23 sampled). A targeted
 re-review of the revised v1.1.0 change contracts is recommended before architecture.
+
+## Re-Review of Revised Change Contracts (2026-06-25)
+
+A fresh-context adversary re-reviewed the 13 rewritten v1.1.0 change/coverage contracts against source:
+**11 SOUND, no regressions** in the fixed contracts — every original defect correctly resolved
+(unreachable keyframe trigger, I-frame spam, OOR heuristic, `.first!` contradiction, missing
+`eventTask.cancel()`, OCR empty-string masking, `USBError` type, bps formula, coalescing misattribution).
+Two NEW minor issues found and fixed: BC-1.06.008 used a non-existent `MouseEvent(x:y:)` initializer
+(→ full init), and BC-1.06.006's env tier filtered empties while source nil-checks only (→ reconciled).
+**Verdict: change-contract set ready for the architecture phase.**
