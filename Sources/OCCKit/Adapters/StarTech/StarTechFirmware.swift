@@ -4,10 +4,12 @@ import Foundation
 /// installation at runtime**. We deliberately do NOT bundle or redistribute the vendor's
 /// proprietary firmware blobs — OpenCrashCart only reads the copy the user already has.
 ///
-/// Resolution order:
-///   1. `OCC_FIRMWARE_DIR` environment variable (explicit override), then
-///   2. the installed "USB Crash Cart Adapter.app" bundle, then
-///   3. the per-user data dir the vendor app copies into `~`.
+/// Resolution order (see `firmwareSearchPaths` for the authoritative chain):
+///   1. a profile's own `firmwareDir`, then
+///   2. `OCC_FIRMWARE_DIR` (explicit override), then
+///   3. the Settings-configured firmware directory, then
+///   4. OpenCrashCart's own app-support firmware folder, then
+///   5–7. vendor fallbacks (the "USB Crash Cart Adapter.app" bundle and per-user `~` data dirs).
 public struct StarTechFirmware {
 
     public enum FirmwareError: Error, CustomStringConvertible {
@@ -29,22 +31,34 @@ public struct StarTechFirmware {
     /// Candidate directories that may contain firmware files. `extra` (e.g. a profile's
     /// own firmwareDir) is searched first, then OpenCrashCart's own configured/owned locations,
     /// then the vendor install as a fallback.
-    static func searchDirectories(extra: [String] = []) -> [String] {
-        var dirs = extra
-        if let override = ProcessInfo.processInfo.environment["OCC_FIRMWARE_DIR"] {
-            dirs.append(override)
-        }
-        if let configured = ProfileStore.shared.firmwareDirectory, !configured.isEmpty {
-            dirs.append(configured)
-        }
-        dirs.append(ProfileStore.shared.applicationSupportFirmwareDir)
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        dirs.append(contentsOf: [
-            "/Applications/USB Crash Cart Adapter.app/Contents/Resources/data",
-            "\(home)/data",
-            "\(home)/Library/Application Support/USB Crash Cart Adapter/data",
-        ])
+    /// Pure: the ordered firmware search directories from resolved inputs (BC-1.06.006).
+    /// Faithful to the live resolution — `env` is included whenever non-nil (no empty-string
+    /// filter, matching the source nil-check); `storeDir` is included only when non-empty.
+    public static func firmwareSearchPaths(profileDir: String?, env: String?, storeDir: String?,
+                                           appSupportDir: String, vendorPaths: [String]) -> [String] {
+        var dirs: [String] = []
+        if let profileDir { dirs.append(profileDir) }
+        if let env { dirs.append(env) }
+        if let storeDir, !storeDir.isEmpty { dirs.append(storeDir) }
+        dirs.append(appSupportDir)
+        dirs.append(contentsOf: vendorPaths)
         return dirs
+    }
+
+    static func searchDirectories(extra: [String] = []) -> [String] {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        // `extra` (a profile's own firmwareDir, 0–1 entries) is prepended wholesale, then the
+        // resolved env/store/app-support/vendor chain from the pure function above.
+        return extra + firmwareSearchPaths(
+            profileDir: nil,
+            env: ProcessInfo.processInfo.environment["OCC_FIRMWARE_DIR"],
+            storeDir: ProfileStore.shared.firmwareDirectory,
+            appSupportDir: ProfileStore.shared.applicationSupportFirmwareDir,
+            vendorPaths: [
+                "/Applications/USB Crash Cart Adapter.app/Contents/Resources/data",
+                "\(home)/data",
+                "\(home)/Library/Application Support/USB Crash Cart Adapter/data",
+            ])
     }
 
     /// Locate a firmware file across the search directories.

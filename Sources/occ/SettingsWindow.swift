@@ -227,14 +227,23 @@ final class SettingsWindowController: NSWindowController {
             guard resp == .alertFirstButtonReturn else { return }
             let name = fields.name.stringValue.trimmingCharacters(in: .whitespaces)
             guard !name.isEmpty else { return }
+            let vid = fields.vid.stringValue.trimmingCharacters(in: .whitespaces)
             let pids = fields.pids.stringValue.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            // Validate VID/PID format (P2.3) — an invalid hex/decimal otherwise parses silently
+            // to 0, producing a profile that never matches a device.
+            func validID(_ s: String) -> Bool {
+                let t = s.lowercased()
+                return t.hasPrefix("0x") ? UInt16(t.dropFirst(2), radix: 16) != nil : UInt16(t) != nil
+            }
+            guard validID(vid) else { self?.warnInvalid("Vendor ID", vid); return }
+            if let bad = pids.first(where: { !validID($0) }) { self?.warnInvalid("Product ID", bad); return }
             let files = fields.files.stringValue.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             let dir = fields.dir.stringValue.trimmingCharacters(in: .whitespaces)
             let profile = HardwareProfile(
                 id: existing?.id ?? "custom-" + UUID().uuidString.prefix(8).lowercased(),
                 name: name,
                 backend: existing?.backend ?? "dmtz-vsp",
-                vendorId: fields.vid.stringValue.trimmingCharacters(in: .whitespaces),
+                vendorId: vid,
                 productIds: pids,
                 firmwareFiles: files.isEmpty ? ["ulcvm.fgz"] : files,
                 firmwareDir: dir.isEmpty ? nil : dir,
@@ -242,6 +251,13 @@ final class SettingsWindowController: NSWindowController {
             ProfileStore.shared.upsert(profile)
             self?.refresh(); self?.onChange()
         }
+    }
+
+    private func warnInvalid(_ field: String, _ value: String) {
+        let a = NSAlert()
+        a.messageText = "Invalid \(field)"
+        a.informativeText = "\"\(value)\" must be hexadecimal (e.g. 0x152A) or a decimal 0–65535. Profile not saved."
+        a.runModal()
     }
 
     private struct EditorFields { let name, vid, pids, files, dir: NSTextField }

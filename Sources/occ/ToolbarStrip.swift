@@ -3,10 +3,13 @@ import AppKit
 @MainActor protocol ToolbarActions: AnyObject {
     func ctrlAltDel()
     func toggleKeyboard()
+    func pasteText()
     func refreshScreen()
     func retuneVideo()
     func toggleVideoAdjust()
+    func toggleImageEnhance()
     func snapshot()
+    func copyTextFromScreen()
     func mountMedia()
     func toggleRecording()
     func actualSize()
@@ -155,11 +158,14 @@ final class ToolbarStrip: NSView {
 
         stack.addArrangedSubview(button("bolt.horizontal.circle", "Send Ctrl-Alt-Del", #selector(onCAD)))
         stack.addArrangedSubview(button("keyboard", "On-screen keyboard", #selector(onKeyboard)))
+        stack.addArrangedSubview(button("doc.on.clipboard", "Paste clipboard to target (⇧⌘V)", #selector(onPaste)))
         stack.addArrangedSubview(separator())
         stack.addArrangedSubview(button("arrow.clockwise", "Refresh screen", #selector(onRefresh)))
         stack.addArrangedSubview(button("wand.and.stars", "Auto-tune video", #selector(onRetune)))
         stack.addArrangedSubview(button("slider.horizontal.3", "Video adjustments", #selector(onAdjust)))
+        stack.addArrangedSubview(button("camera.filters", "Image enhancement (brightness/sharpen)", #selector(onEnhance)))
         stack.addArrangedSubview(button("camera", "Save snapshot", #selector(onSnap)))
+        stack.addArrangedSubview(button("text.viewfinder", "Copy text from screen (OCR)", #selector(onOCR)))
         stack.addArrangedSubview(button("opticaldisc", "Mount disk image (ISO/IMG)", #selector(onMedia)))
         stack.addArrangedSubview(button("record.circle", "Record session to video", #selector(onRecord)))
         stack.addArrangedSubview(separator())
@@ -176,11 +182,14 @@ final class ToolbarStrip: NSView {
     }
 
     @objc private func onKeyboard() { actions?.toggleKeyboard() }
+    @objc private func onPaste()    { actions?.pasteText() }
     @objc private func onCAD()      { actions?.ctrlAltDel() }
     @objc private func onRefresh()  { actions?.refreshScreen() }
     @objc private func onRetune()   { actions?.retuneVideo() }
     @objc private func onAdjust()   { actions?.toggleVideoAdjust() }
+    @objc private func onEnhance()  { actions?.toggleImageEnhance() }
     @objc private func onSnap()     { actions?.snapshot() }
+    @objc private func onOCR()      { actions?.copyTextFromScreen() }
     @objc private func onMedia()    { actions?.mountMedia() }
     @objc private func onRecord()   { actions?.toggleRecording() }
     @objc private func onFit()      { actions?.fitToWindow() }

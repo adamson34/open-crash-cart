@@ -1,7 +1,7 @@
 import Foundation
 import Clibusb
 
-public enum USBTransportError: Error, CustomStringConvertible {
+public enum USBTransportError: Error, Equatable, CustomStringConvertible {
     case contextInitFailed(Int32)
     case deviceNotFound
     case openFailed(Int32)
@@ -32,6 +32,7 @@ public final class USBDevice: @unchecked Sendable {
 
     private var ctx: OpaquePointer?
     private var handle: OpaquePointer?
+    private var claimedInterface: Int32?     // released on close (no backend-specific constant)
     public let info: DiscoveredDevice
 
     private init(ctx: OpaquePointer?, handle: OpaquePointer?, info: DiscoveredDevice) {
@@ -76,6 +77,7 @@ public final class USBDevice: @unchecked Sendable {
         guard let handle else { throw USBTransportError.disconnected }
         let rc = libusb_claim_interface(handle, Int32(number))
         guard rc == 0 else { throw USBTransportError.claimFailed(rc) }
+        claimedInterface = Int32(number)
     }
 
     /// Blocking bulk write. Returns bytes transferred.
@@ -107,7 +109,7 @@ public final class USBDevice: @unchecked Sendable {
 
     public func close() {
         if let handle {
-            libusb_release_interface(handle, Int32(VSProtocol.interfaceNumber))
+            if let claimedInterface { libusb_release_interface(handle, claimedInterface) }
             libusb_close(handle)
             self.handle = nil
         }
@@ -117,13 +119,19 @@ public final class USBDevice: @unchecked Sendable {
         }
     }
 
-    private func check(_ rc: Int32) throws {
-        guard rc != 0 else { return }
+    /// Pure mapping from a libusb return code to a transport error (`nil` = success / no throw).
+    /// Exposed for testing; `check` throws whatever this returns (BC-1.06.004).
+    public static func mapLibusbResult(_ rc: Int32) -> USBTransportError? {
         switch rc {
-        case Self.LIBUSB_ERROR_TIMEOUT:   throw USBTransportError.timeout
-        case Self.LIBUSB_ERROR_NO_DEVICE: throw USBTransportError.disconnected
-        default:                          throw USBTransportError.transferFailed(rc)
+        case 0:                      return nil
+        case LIBUSB_ERROR_TIMEOUT:   return .timeout
+        case LIBUSB_ERROR_NO_DEVICE: return .disconnected
+        default:                     return .transferFailed(rc)
         }
+    }
+
+    private func check(_ rc: Int32) throws {
+        if let err = Self.mapLibusbResult(rc) { throw err }
     }
 
     static func errorName(_ rc: Int32) -> String {

@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 /// the bridge between the UI and the device. Padding is driven by `Theme` and adjustable
 /// live (⌘+ / ⌘−).
 @MainActor
-final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, ToolbarActions {
+final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, ToolbarActions, NSMenuDelegate {
     private var window: NSWindow!
     private var root: NSView!
     private var videoView: VideoView!
@@ -20,7 +20,9 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
 
     private var keyboardPanel: KeyboardPanel?
     private var adjustPanel: VideoAdjustPanel?
+    private var enhancePanel: ImageEnhancePanel?
     private var settingsController: SettingsWindowController?
+    private var uvcMenu: NSMenu!
     private var latestAdjustments: [VideoAdjustment: Int] = [:]
     private var adapter: (any CrashCartAdapter)?
     private var eventTask: Task<Void, Never>?
@@ -28,6 +30,13 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     private var connecting = false
     private var isLive = false
     private var didAutoSize = false
+    // Set true by an explicit Disconnect so the 2s rescan timer does not auto-reconnect until
+    // the user reconnects (BC-1.01.034). An external (device-unplug) disconnect does NOT set it,
+    // so hotplug auto-reconnect still works.
+    private var userDisconnected = false
+    // Bumped on every session start/teardown so a stale event stream (from a torn-down adapter or
+    // an in-flight connect Task launched just before Disconnect) is ignored by handle().
+    private var adapterGeneration = 0
     private var relativeMouse = false
     private var recorder: Recorder?
     private var relativeMouseItem: NSMenuItem!
@@ -66,6 +75,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
 
         videoView = VideoView(frame: .zero)
         videoView.input = self
+        videoView.onRegionSelected = { [weak self] image in self?.handleOCR(image) }
         placeholder = PlaceholderView(frame: .zero)
 
         [toolbar, screenCard, statusBar].forEach {
@@ -168,7 +178,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     // MARK: Connection
 
     private func tryConnect() {
-        guard adapter == nil, !connecting else { return }
+        guard adapter == nil, !connecting, !userDisconnected else { return }
         let found = discoverProfiledDevices()
         guard let (device, profile) = found.first, let adapter = makeAdapter(for: device, profile: profile) else {
             if !connecting && adapter == nil { showPlaceholder(.noAdapter) }
@@ -178,15 +188,70 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         showPlaceholder(.connecting)
         statusBar.setMessage("Connecting to \(profile.name)…")
         self.adapter = adapter
+        adapterGeneration += 1
+        let gen = adapterGeneration
         eventTask = Task { [weak self] in
             do {
                 let events = try await adapter.connect()
                 self?.connecting = false
-                for await event in events { self?.handle(event) }
+                for await event in events {
+                    guard let self, self.adapterGeneration == gen else { break }
+                    self.handle(event)
+                }
             } catch {
                 self?.connecting = false
                 self?.adapter = nil
                 self?.statusBar.setMessage("Connect failed: \(error)")
+                self?.showPlaceholder(.noAdapter)
+            }
+        }
+    }
+
+    // MARK: UVC capture (NSMenuDelegate populates the submenu on open)
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu === uvcMenu else { return }
+        menu.removeAllItems()
+        let devices = discoverUVCDevices()
+        if devices.isEmpty {
+            let item = NSMenuItem(title: "No UVC devices found", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+            return
+        }
+        for device in devices {
+            let item = NSMenuItem(title: device.name, action: #selector(menuConnectUVC(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = device.id
+            menu.addItem(item)
+        }
+    }
+
+    @objc private func menuConnectUVC(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        // Tear down whatever's connected, then start the UVC session.
+        if let current = adapter { Task { await current.disconnect() } }
+        eventTask?.cancel()
+        userDisconnected = false
+        adapter = nil; connecting = true; didAutoSize = false
+        showPlaceholder(.connecting)
+        statusBar.setMessage("Connecting to UVC device…")
+        let uvc = UVCAdapter(deviceID: id)
+        adapter = uvc
+        adapterGeneration += 1
+        let gen = adapterGeneration
+        eventTask = Task { [weak self] in
+            do {
+                let events = try await uvc.connect()
+                self?.connecting = false
+                for await event in events {
+                    guard let self, self.adapterGeneration == gen else { break }
+                    self.handle(event)
+                }
+            } catch {
+                self?.connecting = false
+                self?.adapter = nil
+                self?.statusBar.setMessage("UVC connect failed: \(error)")
                 self?.showPlaceholder(.noAdapter)
             }
         }
@@ -201,8 +266,10 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         case .status(let status):
             statusBar.update(status)
             if !status.adjustments.isEmpty {
+                // Track the device's values for when the panel next opens, but do NOT push
+                // them onto the sliders live — that would fight an in-progress drag (and the
+                // device's auto-fine-tune of posX/posY) and make the knob jump.
                 latestAdjustments = status.adjustments
-                adjustPanel?.apply(status.adjustments)
             }
             if case .live(let w, let h, _) = status.state {
                 showVideo()
@@ -222,6 +289,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
             adapter = nil
             eventTask = nil
             didAutoSize = false
+            adapterGeneration += 1
             showPlaceholder(.noAdapter)
         }
     }
@@ -256,16 +324,21 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
                         action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
 
-        // Connection
+        // Connection — includes a dynamically-populated UVC capture submenu.
+        uvcMenu = NSMenu(title: "Connect UVC Device")
+        uvcMenu.delegate = self
+        let uvcItem = NSMenuItem(); uvcItem.title = "Connect UVC Device"; uvcItem.submenu = uvcMenu
         addSubmenu(to: main, "Connection", [
             mi("Reconnect", #selector(menuReconnect), "r", [.command, .shift]),
             mi("Disconnect", #selector(menuDisconnect)),
+            uvcItem,
             .separator(),
             mi("Mount Disk Image…", #selector(menuMountMedia)),
             mi("Eject Disk Image", #selector(menuEjectMedia)),
             .separator(),
             mi("Start/Stop Recording", #selector(menuRecord), "e", [.command, .shift]),
             mi("Save Snapshot…", #selector(menuSnapshot), "s"),
+            mi("Copy Text from Screen…", #selector(menuOCR), "c", [.command, .shift]),
         ])
 
         // Keyboard
@@ -285,6 +358,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         videoMenu.addItem(mi("Refresh Screen", #selector(menuRefresh), "r"))
         videoMenu.addItem(mi("Auto-Tune Video", #selector(menuAutoTune)))
         videoMenu.addItem(mi("Video Adjustments…", #selector(menuAdjust)))
+        videoMenu.addItem(mi("Image Enhancement…", #selector(menuEnhance)))
         videoMenu.addItem(.separator())
         let ddc = NSMenu(title: "Preferred Resolution (DDC)")
         for preset in DDCPreset.allCases {
@@ -341,23 +415,34 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
 
     @objc private func menuReconnect() {
         if let a = adapter { Task { await a.disconnect() } }
+        eventTask?.cancel()
+        userDisconnected = false
         adapter = nil; eventTask = nil; connecting = false; didAutoSize = false
+        adapterGeneration += 1
         showPlaceholder(.noAdapter)
         tryConnect()
     }
     @objc private func menuDisconnect() {
         if let a = adapter { Task { await a.disconnect() } }
+        eventTask?.cancel()
+        userDisconnected = true                 // stay disconnected until an explicit reconnect
         adapter = nil; eventTask = nil; connecting = false; didAutoSize = false
+        adapterGeneration += 1
         showPlaceholder(.noAdapter)
+        statusBar.setMessage("Disconnected.")
     }
     @objc private func menuSnapshot()    { snapshot() }
+    @objc private func menuOCR()         { copyTextFromScreen() }
     @objc private func menuMountMedia()  { mountMedia() }
     @objc private func menuEjectMedia()  { adapter?.ejectMedia() }
     @objc private func menuKeyboard()    { toggleKeyboard() }
 
-    @objc private func menuPasteText() {
+    @objc private func menuPasteText() { pasteText() }
+
+    func pasteText() {
         if let text = NSPasteboard.general.string(forType: .string), !text.isEmpty {
             adapter?.typeText(text)
+            statusBar.setMessage("Pasting \(text.count) character\(text.count == 1 ? "" : "s") to target…")
         } else {
             statusBar.setMessage("Clipboard has no text to paste.")
         }
@@ -382,6 +467,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     @objc private func menuRefresh()     { refreshScreen() }
     @objc private func menuAutoTune()    { retuneVideo() }
     @objc private func menuAdjust()      { toggleVideoAdjust() }
+    @objc private func menuEnhance()     { toggleImageEnhance() }
     @objc private func menuRecord()      { toggleRecording() }
 
     @objc private func menuDDC(_ sender: NSMenuItem) {
@@ -461,6 +547,14 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         rec.finish { [weak self] frames in
             DispatchQueue.main.async { self?.statusBar.setMessage("Saved recording (\(frames) frames).") }
         }
+    }
+
+    func toggleImageEnhance() {
+        if enhancePanel == nil {
+            enhancePanel = ImageEnhancePanel { [weak self] e in self?.videoView.setEnhancement(e) }
+        }
+        guard let panel = enhancePanel else { return }
+        if panel.isVisible { panel.orderOut(nil) } else { panel.present(relativeTo: window) }
     }
 
     func toggleVideoAdjust() {
@@ -565,6 +659,40 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         panel.nameFieldStringValue = "OpenCrashCart-snapshot.png"
         panel.begin { response in
             if response == .OK, let url = panel.url { try? png.write(to: url) }
+        }
+    }
+
+    func copyTextFromScreen() {
+        guard isLive else {
+            statusBar.setMessage("Connect to a live target before using OCR.")
+            return
+        }
+        statusBar.setMessage("Drag to select the text to copy (Esc to cancel)…")
+        videoView.beginRegionSelection()
+    }
+
+    private func handleOCR(_ image: CGImage?) {
+        guard let image else { statusBar.setMessage("OCR cancelled."); return }
+        statusBar.setMessage("Reading text…")
+        recognizeText(in: image) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                switch result {
+                case .failure(let error):
+                    // A real OCR failure must not masquerade as "no text found" (BC-1.03.012).
+                    self.statusBar.setMessage("OCR failed: \(error.localizedDescription)")
+                case .success(let text):
+                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else {
+                        self.statusBar.setMessage("No text found in the selection.")
+                        return
+                    }
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(trimmed, forType: .string)
+                    let n = trimmed.count
+                    self.statusBar.setMessage("Copied \(n) character\(n == 1 ? "" : "s") from screen to clipboard.")
+                }
+            }
         }
     }
 }

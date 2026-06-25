@@ -8,15 +8,35 @@ import Foundation
 /// behavior here is a clean-room reimplementation from the wire protocol in PROTOCOL.md.
 public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
 
-    public static let model = AdapterModel(
-        id: "startech-notecons02",
-        name: "StarTech NOTECONS02 USB Crash Cart Adapter",
-        vendorID: 0x152A,
-        productIDs: [0x8460, 0x8463]
-    )
+    /// Derived from the built-in profile (BC-1.04.020): no hardcoded VID/PID, no force-unwrap.
+    /// If the built-in is ever absent, falls back to a zero-value model (matching fails closed).
+    public static let model: AdapterModel = {
+        let p = ProfileStore.builtIns.first { $0.id == "startech-notecons02" }
+        return AdapterModel(id: "startech-notecons02",
+                            name: p?.name ?? "StarTech NOTECONS02",
+                            vendorID: p?.vid ?? 0,
+                            productIDs: p?.pids ?? [])
+    }()
 
     public static func canDrive(_ device: DiscoveredDevice) -> Bool {
         device.vendorID == model.vendorID && model.productIDs.contains(device.productID)
+    }
+
+    /// Pure: device-reported video throughput. `ticks` is a millisecond counter; 0 → 0 (BC-1.06.007).
+    public static func computeBytesPerSecond(words: UInt32, ticks: UInt16) -> Double {
+        ticks > 0 ? Double(words) * 16.0 * 1000.0 / Double(ticks) : 0
+    }
+
+    /// Pure: derive the high-level `AdapterState` from STATUS fields (BC-1.06.007).
+    public static func deriveState(fpgaLoaded: Bool, noVideo: UInt8,
+                                   width: Int, height: Int, hz: Int) -> AdapterState {
+        if let reason = NoVideoReason(rawValue: noVideo), reason != .ok {
+            return .noVideo(reason)
+        }
+        if fpgaLoaded, width > 0, height > 0 {
+            return .live(width: width, height: height, hz: hz)
+        }
+        return .connecting
     }
 
     private let target: DiscoveredDevice
@@ -34,6 +54,10 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
 
     // Cached status to emit only on change.
     private var lastStatus = AdapterStatus()
+
+    // Keyframe-on-desync latch (touched only on the video thread): at most one outstanding
+    // doIFrame request between clean decodes (BC-1.02.018).
+    private var keyframeRequested = false
 
     public init(device: DiscoveredDevice, profile: HardwareProfile? = nil,
                 decoder: StarTechVideoDecoding = StarTechTileDecoder()) {
@@ -91,6 +115,7 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
     // MARK: Video adjustments (MISC values)
 
     /// MISC index per the VSP protocol: phase=0, posX=1, posY=2, noise=3, flatness=4.
+    /// Note: the app's user-facing "sharpness" control maps to the protocol's index-4 "flatness".
     private static func miscIndex(_ a: VideoAdjustment) -> UInt8? {
         switch a {
         case .phase: return 0
@@ -296,8 +321,15 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
                 if let frame = decoder.ingest(chunk) {
                     emit(.frame(frame))
                 }
+                // Request a keyframe on desync, but at most one outstanding between clean
+                // frames (BC-1.02.018) — avoids flooding the control queue under sustained desync.
                 if decoder.needsKeyframe {
-                    queue.enqueue(VSPack.command(.doIFrame), priority: .control)
+                    if !keyframeRequested {
+                        queue.enqueue(VSPack.command(.doIFrame), priority: .control)
+                        keyframeRequested = true
+                    }
+                } else {
+                    keyframeRequested = false
                 }
             } catch USBTransportError.timeout {
                 continue
@@ -375,15 +407,9 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
         if misc.count > 3 { adjustments[.noise]      = Int(misc[3]) }
         if misc.count > 4 { adjustments[.sharpness]  = Int(misc[4]) }
 
-        let state: AdapterState
-        if let reason = NoVideoReason(rawValue: noVideo), reason != .ok {
-            state = .noVideo(reason)
-        } else if fpgaLoaded != 0, w > 0, h > 0 {
-            state = .live(width: w, height: h, hz: hz)
-            decoder.setActiveSize(width: w, height: h)
-        } else {
-            state = .connecting
-        }
+        let state = Self.deriveState(fpgaLoaded: fpgaLoaded != 0, noVideo: noVideo,
+                                     width: w, height: h, hz: hz)
+        if case .live(let lw, let lh, _) = state { decoder.setActiveSize(width: lw, height: lh) }
 
         var status = AdapterStatus()
         status.state = state
@@ -391,7 +417,7 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
         status.keyboardType = KeyboardEmulation(rawValue: kbdType) ?? .usb
         status.leds = KeyboardLEDs(rawValue: leds)
         status.fps = fps
-        status.bytesPerSecond = ticks > 0 ? Double(words) * 16.0 * 1000.0 / Double(ticks) : 0
+        status.bytesPerSecond = Self.computeBytesPerSecond(words: UInt32(words), ticks: UInt16(ticks))
         status.adjustments = adjustments
 
         if status.differs(from: lastStatus) {

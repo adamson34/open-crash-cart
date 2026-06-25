@@ -15,9 +15,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>1.1.0</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>3</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
@@ -26,6 +26,8 @@
     <string>NSApplication</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
+    <key>NSCameraUsageDescription</key>
+    <string>OpenCrashCart displays the connected machine's screen from USB video capture (UVC) devices.</string>
     <key>NSHumanReadableCopyright</key>
     <string>OpenCrashCart — open-source crash-cart client.</string>
 </dict>

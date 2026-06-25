@@ -27,6 +27,12 @@ public final class StarTechTileDecoder: StarTechVideoDecoding, @unchecked Sendab
     public private(set) var needsKeyframe = false
     private var sawTileSinceEmit = false
 
+    // Desync detection (BC-1.02.018): request a keyframe when the stream looks corrupt.
+    private static let oorThreshold = 8     // invalid-coordinate records in one ingest
+    private static let staleThreshold = 8   // consecutive non-empty ingests with no in-range tile
+    private var staleIngestCount = 0
+    private var oorSkipThisIngest = 0
+
     public init() {
         framebuffer = [UInt8](repeating: 0, count: Self.maxWidth * Self.maxHeight * 4)
     }
@@ -44,12 +50,16 @@ public final class StarTechTileDecoder: StarTechVideoDecoding, @unchecked Sendab
         leftoverNeeded = 0
         needsKeyframe = false
         sawTileSinceEmit = false
+        staleIngestCount = 0
+        oorSkipThisIngest = 0
     }
 
     public func ingest(_ chunk: [UInt8]) -> VideoFrame? {
         lock.lock(); defer { lock.unlock() }
-        needsKeyframe = false
         sawTileSinceEmit = false
+        oorSkipThisIngest = 0
+        // NB: needsKeyframe is NOT cleared here — that was the dormant defect (BC-019). It is
+        // set by the desync triggers below and cleared only on a clean decode.
 
         var data = chunk
 
@@ -73,7 +83,26 @@ public final class StarTechTileDecoder: StarTechVideoDecoding, @unchecked Sendab
         // 2) Process whole records from the current transfer.
         processBuffer(data)
 
-        // 3) Emit a cropped frame if we touched the framebuffer this call.
+        // 3) Desync detection (BC-1.02.018) — request a keyframe when the stream looks corrupt:
+        //    (a) a burst of out-of-range tile coordinates in one transfer (garbage data), or
+        //    (b) sustained non-empty transfers that decode no in-range tiles.
+        //    needsKeyframe persists until a clean decode clears it; the adapter dedups the
+        //    actual I-frame request via its keyframeRequested latch (≤1 outstanding).
+        if oorSkipThisIngest >= Self.oorThreshold {
+            needsKeyframe = true
+        }
+        if !chunk.isEmpty && !sawTileSinceEmit {
+            staleIngestCount += 1
+            if staleIngestCount >= Self.staleThreshold {
+                needsKeyframe = true
+                staleIngestCount = 0
+            }
+        } else if sawTileSinceEmit && oorSkipThisIngest == 0 {
+            staleIngestCount = 0
+            needsKeyframe = false       // clean decode
+        }
+
+        // 4) Emit a cropped frame if we touched the framebuffer this call.
         return sawTileSinceEmit ? snapshotActiveRegion() : nil
     }
 
@@ -119,8 +148,10 @@ public final class StarTechTileDecoder: StarTechVideoDecoding, @unchecked Sendab
         let tileY = Int((word1 >> 7) & 0x7F)
         let isSolid = (word1 & 0x4000) != 0
 
-        // Out-of-range tile coordinate: skip, write nothing.
+        // Out-of-range tile coordinate: skip, write nothing. A burst of these in one transfer
+        // signals stream corruption (BC-1.02.018).
         guard tileX < Self.tilesWide, tileY < Self.tilesHigh else {
+            oorSkipThisIngest += 1
             return isSolid ? 4 : 4 + 512
         }
 

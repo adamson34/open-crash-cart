@@ -23,6 +23,7 @@ final class VideoAdjustPanel: NSPanel {
     private let onReset: () -> Void
     private var sliders: [VideoAdjustment: NSSlider] = [:]
     private var valueLabels: [VideoAdjustment: NSTextField] = [:]
+    private var lastSent: [VideoAdjustment: Int] = [:]
 
     init(onChange: @escaping (VideoAdjustment, Int) -> Void,
          onSave: @escaping () -> Void, onReset: @escaping () -> Void) {
@@ -109,6 +110,7 @@ final class VideoAdjustPanel: NSPanel {
         for (adj, v) in values {
             sliders[adj]?.integerValue = v
             valueLabels[adj]?.stringValue = "\(v)"
+            lastSent[adj] = v
         }
     }
 
@@ -116,6 +118,8 @@ final class VideoAdjustPanel: NSPanel {
         let spec = Self.specs[sender.tag]
         let v = sender.integerValue
         valueLabels[spec.adjustment]?.stringValue = "\(v)"
+        guard lastSent[spec.adjustment] != v else { return }   // only send on a real change
+        lastSent[spec.adjustment] = v
         onChange(spec.adjustment, v)
     }
     @objc private func saveTapped()  { onSave() }

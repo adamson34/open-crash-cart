@@ -1,10 +1,37 @@
 import AppKit
+import CoreImage
 import OCCKit
+
+/// Client-side image-enhancement filters applied to the displayed video (not the device).
+struct ImageEnhancement: Equatable {
+    var brightness: Double = 0     // -1…1   (CIColorControls)
+    var contrast: Double = 1       // 0.5…2
+    var sharpness: Double = 0      // 0…1    (CISharpenLuminance)
+    var grayscale: Bool = false
+    var isActive: Bool { brightness != 0 || contrast != 1 || sharpness != 0 || grayscale }
+}
 
 /// Receives translated input from the video view.
 @MainActor protocol VideoViewInput: AnyObject {
     func sendKey(usage: UInt8, isDown: Bool, allReleased: Bool)
     func sendMouse(buttons: MouseButtons, x: Int16, y: Int16, wheel: Int16, absolute: Bool)
+}
+
+/// Transparent overlay that draws the OCR selection rectangle and passes mouse events
+/// through to the video view beneath it.
+final class SelectionOverlay: NSView {
+    var selectionRect: NSRect? { didSet { needsDisplay = true } }
+    override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }  // never intercept input
+    override func draw(_ dirtyRect: NSRect) {
+        guard let r = selectionRect else { return }
+        Theme.shared.accentPink.withAlphaComponent(0.18).setFill()
+        r.fill()
+        Theme.shared.accentPink.setStroke()
+        let path = NSBezierPath(rect: r)
+        path.lineWidth = 1.5
+        path.stroke()
+    }
 }
 
 /// Layer-backed view that displays decoded BGRA frames and captures keyboard/mouse,
@@ -14,6 +41,18 @@ final class VideoView: NSView {
 
     private(set) var frameSize = CGSize(width: 1024, height: 768)
     private var lastImage: CGImage?
+
+    /// Display-only enhancement (brightness/contrast/sharpen/grayscale). Raw frames are kept
+    /// for snapshot/OCR; enhancement only affects what's shown.
+    var enhancement = ImageEnhancement()
+    private lazy var ciContext = CIContext(options: [.useSoftwareRenderer: false])
+
+    /// OCR region selection. `onRegionSelected` is called with the cropped frame (or nil if
+    /// cancelled/empty) when the user finishes dragging a rectangle.
+    var onRegionSelected: ((CGImage?) -> Void)?
+    private var selecting = false
+    private var selectionStart: NSPoint?
+    private let overlay = SelectionOverlay()
 
     /// When true, the cursor is captured and movement is sent as relative deltas — for
     /// targets where absolute positioning doesn't work (some BIOS/console screens).
@@ -28,6 +67,10 @@ final class VideoView: NSView {
         layer?.backgroundColor = NSColor.black.cgColor
         layer?.contentsGravity = .resizeAspect
         layer?.magnificationFilter = .nearest   // crisp pixels, no blur
+        overlay.frame = bounds
+        overlay.autoresizingMask = [.width, .height]
+        overlay.isHidden = true
+        addSubview(overlay)
     }
     required init?(coder: NSCoder) { fatalError("not used") }
 
@@ -41,7 +84,35 @@ final class VideoView: NSView {
         frameSize = CGSize(width: frame.width, height: frame.height)
         guard let image = makeCGImage(frame) else { return }
         lastImage = image
-        layer?.contents = image
+        updateDisplayedImage()
+    }
+
+    /// Update the enhancement filters and re-render the current frame live.
+    func setEnhancement(_ e: ImageEnhancement) {
+        enhancement = e
+        updateDisplayedImage()
+    }
+
+    private func updateDisplayedImage() {
+        guard let raw = lastImage else { return }
+        layer?.contents = enhancement.isActive ? enhance(raw) : raw
+    }
+
+    private func enhance(_ cgImage: CGImage) -> CGImage {
+        var ci = CIImage(cgImage: cgImage)
+        if let color = CIFilter(name: "CIColorControls") {
+            color.setValue(ci, forKey: kCIInputImageKey)
+            color.setValue(enhancement.brightness, forKey: kCIInputBrightnessKey)
+            color.setValue(enhancement.contrast, forKey: kCIInputContrastKey)
+            color.setValue(enhancement.grayscale ? 0.0 : 1.0, forKey: kCIInputSaturationKey)
+            ci = color.outputImage ?? ci
+        }
+        if enhancement.sharpness > 0, let sharp = CIFilter(name: "CISharpenLuminance") {
+            sharp.setValue(ci, forKey: kCIInputImageKey)
+            sharp.setValue(enhancement.sharpness, forKey: kCIInputSharpnessKey)
+            ci = sharp.outputImage ?? ci
+        }
+        return ciContext.createCGImage(ci, from: ci.extent) ?? cgImage
     }
 
     /// PNG of the current screen for the snapshot button.
@@ -65,7 +136,62 @@ final class VideoView: NSView {
 
     // MARK: Keyboard
 
+    // MARK: OCR region selection
+
+    /// Begin dragging a rectangle over the screen to OCR. Esc cancels.
+    func beginRegionSelection() {
+        selecting = true
+        selectionStart = nil
+        overlay.selectionRect = nil
+        overlay.isHidden = false
+        NSCursor.crosshair.push()
+        window?.makeFirstResponder(self)
+    }
+
+    private func endRegionSelection() {
+        guard selecting else { return }
+        selecting = false
+        selectionStart = nil
+        overlay.selectionRect = nil
+        overlay.isHidden = true
+        NSCursor.pop()
+    }
+
+    private func rect(from a: NSPoint, to b: NSPoint) -> NSRect {
+        NSRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
+    }
+
+    private func finishSelection(at point: NSPoint) {
+        defer { endRegionSelection() }
+        guard let start = selectionStart, let image = lastImage else { onRegionSelected?(nil); return }
+        let r = rect(from: start, to: point)
+        guard r.width > 3, r.height > 3 else { onRegionSelected?(nil); return }
+
+        // Map the view rect → frame-pixel rect (letterbox-aware), then crop the frame image.
+        let b = bounds
+        let fw = max(frameSize.width, 1), fh = max(frameSize.height, 1)
+        let scale = min(b.width / fw, b.height / fh)
+        let dispW = fw * scale, dispH = fh * scale
+        let ox = (b.width - dispW) / 2, oy = (b.height - dispH) / 2
+        func toPixel(_ p: NSPoint) -> CGPoint {
+            CGPoint(x: min(max((p.x - ox) / dispW, 0), 1) * fw,
+                    y: min(max((p.y - oy) / dispH, 0), 1) * fh)
+        }
+        let p1 = toPixel(NSPoint(x: r.minX, y: r.minY))
+        let p2 = toPixel(NSPoint(x: r.maxX, y: r.maxY))
+        let crop = CGRect(x: floor(min(p1.x, p2.x)), y: floor(min(p1.y, p2.y)),
+                          width: ceil(abs(p2.x - p1.x)), height: ceil(abs(p2.y - p1.y)))
+        guard crop.width >= 4, crop.height >= 4, let cropped = image.cropping(to: crop) else {
+            onRegionSelected?(nil); return
+        }
+        onRegionSelected?(cropped)
+    }
+
     override func keyDown(with event: NSEvent) {
+        if selecting {
+            if event.keyCode == 0x35 { endRegionSelection(); onRegionSelected?(nil) }  // Esc cancels
+            return  // swallow keys while selecting
+        }
         // Let macOS own ⌘ shortcuts (screenshot, ⌘-Tab, Spotlight): don't forward presses
         // made while Command is held, so those never reach the target.
         if event.modifierFlags.contains(.command) { return }
@@ -125,14 +251,26 @@ final class VideoView: NSView {
             owner: self))
     }
 
-    override func mouseDown(with e: NSEvent)        { window?.makeFirstResponder(self); sendMouse(e) }
-    override func mouseUp(with e: NSEvent)          { sendMouse(e) }
+    override func mouseDown(with e: NSEvent) {
+        if selecting { selectionStart = convert(e.locationInWindow, from: nil); return }
+        window?.makeFirstResponder(self); sendMouse(e)
+    }
+    override func mouseUp(with e: NSEvent) {
+        if selecting { finishSelection(at: convert(e.locationInWindow, from: nil)); return }
+        sendMouse(e)
+    }
     override func rightMouseDown(with e: NSEvent)   { sendMouse(e) }
     override func rightMouseUp(with e: NSEvent)     { sendMouse(e) }
     override func otherMouseDown(with e: NSEvent)   { sendMouse(e) }
     override func otherMouseUp(with e: NSEvent)     { sendMouse(e) }
     override func mouseMoved(with e: NSEvent)       { sendMouse(e) }
-    override func mouseDragged(with e: NSEvent)     { sendMouse(e) }
+    override func mouseDragged(with e: NSEvent) {
+        if selecting, let start = selectionStart {
+            overlay.selectionRect = rect(from: start, to: convert(e.locationInWindow, from: nil))
+            return
+        }
+        sendMouse(e)
+    }
     override func rightMouseDragged(with e: NSEvent){ sendMouse(e) }
     override func otherMouseDragged(with e: NSEvent){ sendMouse(e) }
     override func scrollWheel(with e: NSEvent) {
@@ -141,6 +279,7 @@ final class VideoView: NSView {
     }
 
     private func sendMouse(_ event: NSEvent, wheel: Int16 = 0) {
+        if selecting { return }   // don't drive the target while picking an OCR region
         let raw = NSEvent.pressedMouseButtons
         var buttons: MouseButtons = []
         if raw & 0b001 != 0 { buttons.insert(.left) }
