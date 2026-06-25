@@ -23,7 +23,7 @@ introduced: v1.0.0
 
 - `args` is either 29 or 35 bytes (CC1 or CC2 STATUS response).
 - All fields are big-endian as packed by the device.
-- `ByteReader` reads fields sequentially; the read order is: fpgaLoaded(u8), fpgaPowered(u8, discarded), kbdType(u8), kmOkay(u8), leds(u8), noVideo(u8), w(u16), h(u16), hz(u8), pixPerClk(u8, discarded), savedPos(u8, discarded), ticks(u16), words(u32), fps(u8), misc[miscLen].
+- `ByteReader` reads fields sequentially; the read order is: fpgaLoaded(u8), fpgaPowered(u8, discarded), kbdType(u8), kmOkay(u8), leds(u8), noVideo(u8), w(u16), h(u16), hz(u8), pixPerClk(u8, discarded), savedPos(u8, discarded), ticks(u16), words(u32), fps(u8), misc[miscLen] — where **miscLen = 9 for CC1 (29-byte packet) and 15 for CC2 (35-byte packet)** (folded from the merged BC-1.01.005).
 
 ## Postconditions
 
