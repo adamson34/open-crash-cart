@@ -30,6 +30,13 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     private var connecting = false
     private var isLive = false
     private var didAutoSize = false
+    // Set true by an explicit Disconnect so the 2s rescan timer does not auto-reconnect until
+    // the user reconnects (BC-1.01.034). An external (device-unplug) disconnect does NOT set it,
+    // so hotplug auto-reconnect still works.
+    private var userDisconnected = false
+    // Bumped on every session start/teardown so a stale event stream (from a torn-down adapter or
+    // an in-flight connect Task launched just before Disconnect) is ignored by handle().
+    private var adapterGeneration = 0
     private var relativeMouse = false
     private var recorder: Recorder?
     private var relativeMouseItem: NSMenuItem!
@@ -171,7 +178,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     // MARK: Connection
 
     private func tryConnect() {
-        guard adapter == nil, !connecting else { return }
+        guard adapter == nil, !connecting, !userDisconnected else { return }
         let found = discoverProfiledDevices()
         guard let (device, profile) = found.first, let adapter = makeAdapter(for: device, profile: profile) else {
             if !connecting && adapter == nil { showPlaceholder(.noAdapter) }
@@ -181,11 +188,16 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         showPlaceholder(.connecting)
         statusBar.setMessage("Connecting to \(profile.name)…")
         self.adapter = adapter
+        adapterGeneration += 1
+        let gen = adapterGeneration
         eventTask = Task { [weak self] in
             do {
                 let events = try await adapter.connect()
                 self?.connecting = false
-                for await event in events { self?.handle(event) }
+                for await event in events {
+                    guard let self, self.adapterGeneration == gen else { break }
+                    self.handle(event)
+                }
             } catch {
                 self?.connecting = false
                 self?.adapter = nil
@@ -220,16 +232,22 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         // Tear down whatever's connected, then start the UVC session.
         if let current = adapter { Task { await current.disconnect() } }
         eventTask?.cancel()
+        userDisconnected = false
         adapter = nil; connecting = true; didAutoSize = false
         showPlaceholder(.connecting)
         statusBar.setMessage("Connecting to UVC device…")
         let uvc = UVCAdapter(deviceID: id)
         adapter = uvc
+        adapterGeneration += 1
+        let gen = adapterGeneration
         eventTask = Task { [weak self] in
             do {
                 let events = try await uvc.connect()
                 self?.connecting = false
-                for await event in events { self?.handle(event) }
+                for await event in events {
+                    guard let self, self.adapterGeneration == gen else { break }
+                    self.handle(event)
+                }
             } catch {
                 self?.connecting = false
                 self?.adapter = nil
@@ -271,6 +289,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
             adapter = nil
             eventTask = nil
             didAutoSize = false
+            adapterGeneration += 1
             showPlaceholder(.noAdapter)
         }
     }
@@ -396,14 +415,21 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
 
     @objc private func menuReconnect() {
         if let a = adapter { Task { await a.disconnect() } }
+        eventTask?.cancel()
+        userDisconnected = false
         adapter = nil; eventTask = nil; connecting = false; didAutoSize = false
+        adapterGeneration += 1
         showPlaceholder(.noAdapter)
         tryConnect()
     }
     @objc private func menuDisconnect() {
         if let a = adapter { Task { await a.disconnect() } }
+        eventTask?.cancel()
+        userDisconnected = true                 // stay disconnected until an explicit reconnect
         adapter = nil; eventTask = nil; connecting = false; didAutoSize = false
+        adapterGeneration += 1
         showPlaceholder(.noAdapter)
+        statusBar.setMessage("Disconnected.")
     }
     @objc private func menuSnapshot()    { snapshot() }
     @objc private func menuOCR()         { copyTextFromScreen() }
@@ -648,18 +674,24 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     private func handleOCR(_ image: CGImage?) {
         guard let image else { statusBar.setMessage("OCR cancelled."); return }
         statusBar.setMessage("Reading text…")
-        recognizeText(in: image) { [weak self] text in
+        recognizeText(in: image) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self else { return }
-                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else {
-                    self.statusBar.setMessage("No text found in the selection.")
-                    return
+                switch result {
+                case .failure(let error):
+                    // A real OCR failure must not masquerade as "no text found" (BC-1.03.012).
+                    self.statusBar.setMessage("OCR failed: \(error.localizedDescription)")
+                case .success(let text):
+                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else {
+                        self.statusBar.setMessage("No text found in the selection.")
+                        return
+                    }
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(trimmed, forType: .string)
+                    let n = trimmed.count
+                    self.statusBar.setMessage("Copied \(n) character\(n == 1 ? "" : "s") from screen to clipboard.")
                 }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(trimmed, forType: .string)
-                let n = trimmed.count
-                self.statusBar.setMessage("Copied \(n) character\(n == 1 ? "" : "s") from screen to clipboard.")
             }
         }
     }

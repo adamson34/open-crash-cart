@@ -41,8 +41,8 @@ public final class UVCAdapter: NSObject, CrashCartAdapter, AVCaptureVideoDataOut
     private var modifierByte: UInt8 = 0
     private var downKeys: [UInt8] = []
     // Mouse coalescing — the serial link is slow, so always send the latest position.
+    private let coalescer = MouseCoalescer()
     private let mouseLock = NSLock()
-    private var pendingMouse: MouseEvent?
     private var mouseScheduled = false
 
     public init(deviceID: String) {
@@ -140,8 +140,8 @@ public final class UVCAdapter: NSObject, CrashCartAdapter, AVCaptureVideoDataOut
 
     public func send(mouse m: MouseEvent) {
         guard hasHID else { return }
+        coalescer.store(m)
         mouseLock.lock()
-        pendingMouse = m
         let schedule = !mouseScheduled
         mouseScheduled = true
         mouseLock.unlock()
@@ -150,10 +150,9 @@ public final class UVCAdapter: NSObject, CrashCartAdapter, AVCaptureVideoDataOut
 
     private func drainMouse() {
         while true {
-            mouseLock.lock()
-            guard let m = pendingMouse else { mouseScheduled = false; mouseLock.unlock(); return }
-            pendingMouse = nil
-            mouseLock.unlock()
+            guard let m = coalescer.drain() else {
+                mouseLock.lock(); mouseScheduled = false; mouseLock.unlock(); return
+            }
 
             let wheel = Int8(clamping: Int(m.wheel))
             if m.isAbsolute {

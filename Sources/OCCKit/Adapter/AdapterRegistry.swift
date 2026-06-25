@@ -14,16 +14,13 @@ public struct AdapterModel: Sendable, Identifiable {
     }
 }
 
-/// Central catalogue of supported adapters. New models register here.
+/// Central catalogue of supported adapters, **derived from `ProfileStore.builtIns`** so device
+/// identity (VID/PID) is declared in exactly one place (BC-1.04.020). No identity constants are
+/// hardcoded here — to support a new model, add a built-in profile.
 public enum AdapterRegistry {
-    public static let known: [AdapterModel] = [
-        AdapterModel(
-            id: "startech-notecons02",
-            name: "StarTech NOTECONS02 USB Crash Cart Adapter",
-            vendorID: 0x152A,                 // Digital Multitools (OEM)
-            productIDs: [0x8460, 0x8463]      // gen-1 / gen-2
-        ),
-    ]
+    public static let known: [AdapterModel] = ProfileStore.builtIns.map {
+        AdapterModel(id: $0.id, name: $0.name, vendorID: $0.vid, productIDs: $0.pids)
+    }
 
     /// Returns the model matching a USB VID/PID, if any.
     public static func match(vendorID: UInt16, productID: UInt16) -> AdapterModel? {

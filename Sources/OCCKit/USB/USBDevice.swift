@@ -1,7 +1,7 @@
 import Foundation
 import Clibusb
 
-public enum USBTransportError: Error, CustomStringConvertible {
+public enum USBTransportError: Error, Equatable, CustomStringConvertible {
     case contextInitFailed(Int32)
     case deviceNotFound
     case openFailed(Int32)
@@ -117,13 +117,19 @@ public final class USBDevice: @unchecked Sendable {
         }
     }
 
-    private func check(_ rc: Int32) throws {
-        guard rc != 0 else { return }
+    /// Pure mapping from a libusb return code to a transport error (`nil` = success / no throw).
+    /// Exposed for testing; `check` throws whatever this returns (BC-1.06.004).
+    public static func mapLibusbResult(_ rc: Int32) -> USBTransportError? {
         switch rc {
-        case Self.LIBUSB_ERROR_TIMEOUT:   throw USBTransportError.timeout
-        case Self.LIBUSB_ERROR_NO_DEVICE: throw USBTransportError.disconnected
-        default:                          throw USBTransportError.transferFailed(rc)
+        case 0:                      return nil
+        case LIBUSB_ERROR_TIMEOUT:   return .timeout
+        case LIBUSB_ERROR_NO_DEVICE: return .disconnected
+        default:                     return .transferFailed(rc)
         }
+    }
+
+    private func check(_ rc: Int32) throws {
+        if let err = Self.mapLibusbResult(rc) { throw err }
     }
 
     static func errorName(_ rc: Int32) -> String {

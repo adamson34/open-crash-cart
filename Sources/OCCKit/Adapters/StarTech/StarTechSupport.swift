@@ -3,15 +3,17 @@ import Foundation
 /// A thread-safe, two-priority command queue. Input events (key/mouse) jump ahead of
 /// control traffic (status polls, FPGA blocks) so typing stays responsive even while a
 /// bitstream is uploading — mirroring the original's separate GUI/control lists.
-final class CommandQueue: @unchecked Sendable {
-    enum Priority { case input, control }
+public final class CommandQueue: @unchecked Sendable {
+    public enum Priority { case input, control }
 
     private let cond = NSCondition()
     private var inputQ: [[UInt8]] = []
     private var controlQ: [[UInt8]] = []
     private var closed = false
 
-    func enqueue(_ message: [UInt8], priority: Priority) {
+    public init() {}
+
+    public func enqueue(_ message: [UInt8], priority: Priority) {
         guard !message.isEmpty else { return }
         cond.lock()
         if !closed {
@@ -25,7 +27,7 @@ final class CommandQueue: @unchecked Sendable {
     }
 
     /// Block until a message is available (input first) or the queue is closed (→ nil).
-    func take() -> [UInt8]? {
+    public func take() -> [UInt8]? {
         cond.lock()
         defer { cond.unlock() }
         while inputQ.isEmpty && controlQ.isEmpty && !closed {
@@ -36,7 +38,7 @@ final class CommandQueue: @unchecked Sendable {
         return nil   // closed
     }
 
-    func close() {
+    public func close() {
         cond.lock()
         closed = true
         cond.broadcast()
