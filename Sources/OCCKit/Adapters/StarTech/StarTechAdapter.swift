@@ -8,12 +8,15 @@ import Foundation
 /// behavior here is a clean-room reimplementation from the wire protocol in PROTOCOL.md.
 public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
 
-    public static let model = AdapterModel(
-        id: "startech-notecons02",
-        name: "StarTech NOTECONS02 USB Crash Cart Adapter",
-        vendorID: 0x152A,
-        productIDs: [0x8460, 0x8463]
-    )
+    /// Derived from the built-in profile (BC-1.04.020): no hardcoded VID/PID, no force-unwrap.
+    /// If the built-in is ever absent, falls back to a zero-value model (matching fails closed).
+    public static let model: AdapterModel = {
+        let p = ProfileStore.builtIns.first { $0.id == "startech-notecons02" }
+        return AdapterModel(id: "startech-notecons02",
+                            name: p?.name ?? "StarTech NOTECONS02",
+                            vendorID: p?.vid ?? 0,
+                            productIDs: p?.pids ?? [])
+    }()
 
     public static func canDrive(_ device: DiscoveredDevice) -> Bool {
         device.vendorID == model.vendorID && model.productIDs.contains(device.productID)
