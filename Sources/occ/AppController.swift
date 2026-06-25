@@ -307,7 +307,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         // Connection — includes a dynamically-populated UVC capture submenu.
         uvcMenu = NSMenu(title: "Connect UVC Device")
         uvcMenu.delegate = self
-        let uvcItem = NSMenuItem(); uvcItem.title = "Connect UVC Device (view-only)"; uvcItem.submenu = uvcMenu
+        let uvcItem = NSMenuItem(); uvcItem.title = "Connect UVC Device"; uvcItem.submenu = uvcMenu
         addSubmenu(to: main, "Connection", [
             mi("Reconnect", #selector(menuReconnect), "r", [.command, .shift]),
             mi("Disconnect", #selector(menuDisconnect)),

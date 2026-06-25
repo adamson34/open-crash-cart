@@ -20,4 +20,12 @@ func runProtocolTests(_ t: Harness) {
     t.expectEqual(VSProtocol.Endpoint.videoIn, 0x82, "video IN endpoint 0x82")
     t.expectEqual(VSProtocol.Endpoint.streamOut, 0x04, "command OUT endpoint 0x04")
     t.expectEqual(VSProtocol.Endpoint.dataIn, 0x85, "data IN endpoint 0x85")
+
+    // CH9329 HID framing (UVC dongles): 0x57 0xAB 0x00 <cmd> <len> <data> <checksum>.
+    let kb = ch9329Frame(cmd: 0x02, data: [0, 0, 0, 0, 0, 0, 0, 0])
+    t.expectEqual(kb, [0x57, 0xAB, 0x00, 0x02, 0x08, 0, 0, 0, 0, 0, 0, 0, 0, 0x0C],
+                  "CH9329 empty keyboard report frames with correct checksum")
+    // LCtrl+LAlt (0x05), Delete (0x4C). Checksum = (0x57+0xAB+0x00+0x02+0x08+0x05+0x4C) & 0xFF = 0x5D.
+    let ctrlAltDel = ch9329Frame(cmd: 0x02, data: [0x05, 0, 0x4C, 0, 0, 0, 0, 0])
+    t.expectEqual(ctrlAltDel.last, UInt8(0x5D), "CH9329 checksum sums header+cmd+len+data")
 }
