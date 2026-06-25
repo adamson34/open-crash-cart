@@ -21,7 +21,9 @@ ingest_bc: BC-073
 
 **v1.1.0 change.** In v1.0.0, the StarTech VID (`0x152A`) and PIDs (`[0x8460, 0x8463]`) are hardcoded in three independent locations: `AdapterRegistry.known` (AdapterRegistry.swift:19-25), `ProfileStore.builtIns` (ProfileStore.swift:21-28), and `StarTechAdapter.model` (StarTechAdapter.swift:11-16). This constitutes a defect (P1.4) — any change to the adapter's supported PIDs requires three separate, manually-synchronised edits, which creates divergence risk.
 
-In v1.1.0, `AdapterRegistry.known` and `StarTechAdapter.model` are refactored to derive their VID/PID data from the corresponding entry in `ProfileStore.builtIns`, making `ProfileStore.builtIns` the single source of truth. A device detection mismatch due to this triple-hardcode is a regression in matching correctness.
+In v1.1.0, `AdapterRegistry.known` and `StarTechAdapter.model` are refactored to derive their VID/PID data from the corresponding entry in `ProfileStore.builtIns`, making `ProfileStore.builtIns` the single source of truth.
+
+**Source-of-truth fields (adversary M2):** the *declared* constants live on the built-in profile as the string fields `vendorId: String` and `productIds: [String]` (HardwareProfile.swift:10-11) — these are what an editor changes. `vid: UInt16` and `pids: [UInt16]` are read-only *computed* accessors (HardwareProfile.swift:29-30); `AdapterModel` consumers read those computed values. A device-detection mismatch due to the triple-hardcode is a regression in matching correctness.
 
 ## Preconditions
 
@@ -40,9 +42,9 @@ In v1.1.0, `AdapterRegistry.known` and `StarTechAdapter.model` are refactored to
 
 **v1.1.0 behavioural invariant (post-refactor):**
 - For all `p` in `ProfileStore.builtIns`: there exists exactly one `AdapterModel` in `AdapterRegistry.known` with `model.id == p.id`, `model.vendorID == p.vid`, and `model.productIDs == p.pids`.
-- `StarTechAdapter.model.vendorID == ProfileStore.builtIns.first!.vid` (for the StarTech entry).
-- `StarTechAdapter.model.productIDs == ProfileStore.builtIns.first!.pids` (for the StarTech entry).
-- Adding a new PID to `ProfileStore.builtIns[0].productIds` automatically propagates to both `AdapterRegistry` and `StarTechAdapter.model` without any other code change.
+- `StarTechAdapter.model` derives from the StarTech entry resolved **by id** (`ProfileStore.builtIns.first { $0.id == "startech-notecons02" }`), NOT a force-unwrapped `.first!`. When that entry is present, `model.vendorID == entry.vid` and `model.productIDs == entry.pids`.
+- **No `!` force-unwrap appears in the derivation of the `static let model`** (a force-unwrap there would trap at type-initialization if built-ins were ever empty — contradicting EC-003's "no crash" guarantee).
+- Adding a new PID to the StarTech built-in's `productIds` string array automatically propagates to both `AdapterRegistry` and `StarTechAdapter.model` without any other code change.
 
 ## Invariants
 
@@ -61,7 +63,7 @@ In v1.1.0, `AdapterRegistry.known` and `StarTechAdapter.model` are refactored to
 
 | Location | v1.0.0 (defect) | v1.1.0 (target) |
 |---|---|---|
-| `ProfileStore.builtIns[0].vid` | `0x152A` (hardcoded) | `0x152A` (source of truth) |
+| StarTech built-in `vendorId`/`productIds` (string fields) | `"0x152A"` / `["0x8460","0x8463"]` (hardcoded) | declared **source of truth**; `.vid`/`.pids` are computed from these |
 | `AdapterRegistry.known[0].vendorID` | `0x152A` (hardcoded) | derived from `ProfileStore.builtIns` |
 | `StarTechAdapter.model.vendorID` | `0x152A` (hardcoded) | derived from `ProfileStore.builtIns` |
 | Sync required on PID add | 3 edits | 1 edit |
