@@ -39,4 +39,20 @@ public enum HIDTyping {
         for (c, u, s) in punct { m[c] = (u, false); if let s { m[s] = (u, true) } }
         return m
     }()
+
+    /// HID key events for a single stroke: the key's down/up wrapped with Left-Shift (0xE1)
+    /// when the character needs shift. Pure — `CrashCartAdapter.typeText` paces these out.
+    public static func keyEvents(usage: UInt8, shift: Bool) -> [HIDKeyEvent] {
+        var e: [HIDKeyEvent] = []
+        if shift { e.append(HIDKeyEvent(usage: 0xE1, modifiers: 0, isDown: true, allReleased: false)) }
+        e.append(HIDKeyEvent(usage: usage, modifiers: 0, isDown: true, allReleased: false))
+        e.append(HIDKeyEvent(usage: usage, modifiers: 0, isDown: false, allReleased: !shift))
+        if shift { e.append(HIDKeyEvent(usage: 0xE1, modifiers: 0, isDown: false, allReleased: true)) }
+        return e
+    }
+
+    /// The full HID key-event sequence to type `text` (each character shift-wrapped). Pure.
+    public static func keyEvents(for text: String) -> [HIDKeyEvent] {
+        strokes(for: text).flatMap { keyEvents(usage: $0.usage, shift: $0.shift) }
+    }
 }
