@@ -14,7 +14,7 @@ origin: brownfield
 
 > **Index document.** Each behavioral contract lives in its own file under
 > `behavioral-contracts/ss-NN/`. Section 2 links to `behavioral-contracts/BC-INDEX.md`
-> (124 contracts). Supplements (interface, NFR, error taxonomy, criticality) live under
+> (128 contracts: 127 active + 1 deprecated). Supplements (interface, NFR, error taxonomy, criticality) live under
 > `prd-supplements/`.
 
 ## 1. Product Overview
@@ -58,8 +58,10 @@ both backends first-class, fixes four P1 defects, and backfills tests.
 | 06 | Quality Gates & Test Coverage | harness/CI gates + v1.1.0 test backfill + coverage policy | MEDIUM |
 
 ## 3. Requirements by Subsystem
-All 124 behavioral contracts are indexed in **`behavioral-contracts/BC-INDEX.md`** (one file per
-contract under `ss-NN/`). The **11 v1.1.0 change contracts** (the P1 fixes + test backfill) carry
+All 128 behavioral contracts (127 active + BC-1.01.005 deprecated, merged into BC-1.02.010) are
+indexed in **`behavioral-contracts/BC-INDEX.md`** (one file per contract under `ss-NN/`). The set was
+revised per `adversarial-review.md` (added coverage BCs BC-1.02.019 auto-tune, BC-1.01.041/042 CLIs,
+BC-1.01.043 link-speed). The **11 v1.1.0 change contracts** (the P1 fixes + test backfill) carry
 `introduced: v1.1.0`:
 - **BC-1.01.034** — Disconnect stays disconnected (P1.1; `userDisconnected` flag suppresses rescan).
 - **BC-1.02.018** — Decoder requests keyframe on desync (P1.2; corrects dormant `needsKeyframe`).
