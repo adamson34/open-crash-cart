@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 /// the bridge between the UI and the device. Padding is driven by `Theme` and adjustable
 /// live (⌘+ / ⌘−).
 @MainActor
-final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, ToolbarActions {
+final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, ToolbarActions, NSMenuDelegate {
     private var window: NSWindow!
     private var root: NSView!
     private var videoView: VideoView!
@@ -21,6 +21,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     private var keyboardPanel: KeyboardPanel?
     private var adjustPanel: VideoAdjustPanel?
     private var settingsController: SettingsWindowController?
+    private var uvcMenu: NSMenu!
     private var latestAdjustments: [VideoAdjustment: Int] = [:]
     private var adapter: (any CrashCartAdapter)?
     private var eventTask: Task<Void, Never>?
@@ -193,6 +194,50 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         }
     }
 
+    // MARK: UVC capture (NSMenuDelegate populates the submenu on open)
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu === uvcMenu else { return }
+        menu.removeAllItems()
+        let devices = discoverUVCDevices()
+        if devices.isEmpty {
+            let item = NSMenuItem(title: "No UVC devices found", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+            return
+        }
+        for device in devices {
+            let item = NSMenuItem(title: device.name, action: #selector(menuConnectUVC(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = device.id
+            menu.addItem(item)
+        }
+    }
+
+    @objc private func menuConnectUVC(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        // Tear down whatever's connected, then start the UVC session.
+        if let current = adapter { Task { await current.disconnect() } }
+        eventTask?.cancel()
+        adapter = nil; connecting = true; didAutoSize = false
+        showPlaceholder(.connecting)
+        statusBar.setMessage("Connecting to UVC device…")
+        let uvc = UVCAdapter(deviceID: id)
+        adapter = uvc
+        eventTask = Task { [weak self] in
+            do {
+                let events = try await uvc.connect()
+                self?.connecting = false
+                for await event in events { self?.handle(event) }
+            } catch {
+                self?.connecting = false
+                self?.adapter = nil
+                self?.statusBar.setMessage("UVC connect failed: \(error)")
+                self?.showPlaceholder(.noAdapter)
+            }
+        }
+    }
+
     private func handle(_ event: AdapterEvent) {
         switch event {
         case .frame(let frame):
@@ -259,10 +304,14 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
                         action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
 
-        // Connection
+        // Connection — includes a dynamically-populated UVC capture submenu.
+        uvcMenu = NSMenu(title: "Connect UVC Device")
+        uvcMenu.delegate = self
+        let uvcItem = NSMenuItem(); uvcItem.title = "Connect UVC Device (view-only)"; uvcItem.submenu = uvcMenu
         addSubmenu(to: main, "Connection", [
             mi("Reconnect", #selector(menuReconnect), "r", [.command, .shift]),
             mi("Disconnect", #selector(menuDisconnect)),
+            uvcItem,
             .separator(),
             mi("Mount Disk Image…", #selector(menuMountMedia)),
             mi("Eject Disk Image", #selector(menuEjectMedia)),

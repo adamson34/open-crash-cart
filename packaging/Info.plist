@@ -26,6 +26,8 @@
     <string>NSApplication</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
+    <key>NSCameraUsageDescription</key>
+    <string>OpenCrashCart displays the connected machine's screen from USB video capture (UVC) devices.</string>
     <key>NSHumanReadableCopyright</key>
     <string>OpenCrashCart — open-source crash-cart client.</string>
 </dict>
