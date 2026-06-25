@@ -115,6 +115,7 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
     // MARK: Video adjustments (MISC values)
 
     /// MISC index per the VSP protocol: phase=0, posX=1, posY=2, noise=3, flatness=4.
+    /// Note: the app's user-facing "sharpness" control maps to the protocol's index-4 "flatness".
     private static func miscIndex(_ a: VideoAdjustment) -> UInt8? {
         switch a {
         case .phase: return 0

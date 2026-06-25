@@ -1,12 +1,12 @@
 import Foundation
 
-/// Seam for the proprietary StarTech 16×16-tile video codec (Phase 3). The device streams
-/// frame data on bulk EP 0x82; chunks are handed to `ingest(_:)`, which updates an internal
-/// framebuffer and, when a frame boundary is reached, returns a displayable `VideoFrame`.
+/// Seam for the StarTech 16×16-tile video codec. The device streams frame data on bulk EP 0x82;
+/// chunks are handed to `ingest(_:)`, which updates an internal framebuffer and, when a frame
+/// boundary is reached, returns a displayable `VideoFrame`.
 ///
-/// The real decoder will be reverse-engineered from `fbext_darwin.so`. Until then this
-/// placeholder tracks throughput so the transport/threading can be exercised end-to-end
-/// without yet producing pixels.
+/// The real implementation is `StarTechTileDecoder` (reverse-engineered from `fbext_darwin.so`;
+/// see docs/CODEC.md). `PlaceholderVideoDecoder` below is a no-pixel alternative that exercises
+/// the transport/threading without decoding.
 public protocol StarTechVideoDecoding: AnyObject {
     /// Called when the active video mode changes (from STATUS messages).
     func setActiveSize(width: Int, height: Int)
@@ -17,7 +17,8 @@ public protocol StarTechVideoDecoding: AnyObject {
     func reset()
 }
 
-/// Placeholder decoder: no pixel decoding yet, only bookkeeping. Lets Phases 1–2 run.
+/// No-pixel decoder: tracks throughput only. An alternative to `StarTechTileDecoder` for
+/// exercising the transport/threading without decoding pixels.
 public final class PlaceholderVideoDecoder: StarTechVideoDecoding, @unchecked Sendable {
     public private(set) var bytesIngested: Int = 0
     public private(set) var chunksIngested: Int = 0
@@ -38,7 +39,7 @@ public final class PlaceholderVideoDecoder: StarTechVideoDecoding, @unchecked Se
         lock.lock(); defer { lock.unlock() }
         bytesIngested += chunk.count
         chunksIngested += 1
-        return nil   // Phase 3 will return decoded frames here.
+        return nil   // intentionally never decodes — use StarTechTileDecoder for real frames.
     }
 
     public func reset() {
