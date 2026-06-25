@@ -1,14 +1,24 @@
 ---
-pipeline: INITIALIZED
-phase: pre-1
+pipeline: PHASE-0-COMPLETE
+phase: brownfield-ingest-done
 product: opencrashcart
 mode: brownfield
-timestamp: 2026-06-25T13:39:29Z
+timestamp: 2026-06-25T14:00:00Z
 ---
 
 # OpenCrashCart — Factory State
 
-VSDD factory initialized for the OpenCrashCart project (native macOS USB crash-cart client).
-Existing codebase: Swift + AppKit app, released v1.0.0 (stable) / v1.1.0-beta.1 (dev).
+Brownfield ingest COMPLETE (phase 0). All passes converged; coverage audit + extraction
+validation passed (PASS/TRUST, 98% accuracy, 52/52 metrics zero-delta).
 
-No pipeline phase has been run yet. Use the orchestrator or phase skills to begin.
+Artifacts: .factory/semport/opencrashcart/
+- pass-0 inventory … pass-6 synthesis (broad sweep)
+- pass-2/3 deep app-layer + panels (r2) + r3 convergence
+- coverage-audit (B.5), extraction-validation (B.6)
+- pass-8 final synthesis (with P0/P1/P2/P3 lessons backlog)
+
+Coverage: 45/45 files, ~140 behavioral contracts, ~40 entities, 41 NFRs, ~24 conventions.
+
+NEXT: /create-brief or /create-domain-spec to crystallize specs, or address the P1 backlog
+in pass-8 synthesis (Disconnect-auto-undo, dormant needsKeyframe, stuck OCR status, dual
+registry, test backfill).

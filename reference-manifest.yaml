@@ -6,4 +6,4 @@ repos:
     ingested: 2026-06-25
     depth: full
     focus: "Native macOS USB crash-cart client — OCCKit core library + occ AppKit app + CLIs"
-    status: ingesting
+    status: ingested
