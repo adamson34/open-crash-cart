@@ -12,3 +12,6 @@ reverse/
 
 # VSDD factory worktree (lives on the factory-artifacts orphan branch)
 .factory/
+
+# Brownfield-ingest source copies (re-derivable; see .factory/reference-manifest.yaml)
+.reference/
