@@ -14,36 +14,51 @@ final class CH9329 {
 
     func close() { port.close() }
 
-    private func send(cmd: UInt8, data: [UInt8]) {
-        port.writeBytes(ch9329Frame(cmd: cmd, data: data))
-    }
-
     /// CMD 0x02: full 8-byte HID keyboard report — [modifier, 0x00, key1…key6].
     func keyboard(modifier: UInt8, keys: [UInt8]) {
-        var k = Array(keys.prefix(6))
-        while k.count < 6 { k.append(0) }
-        send(cmd: 0x02, data: [modifier, 0x00] + k)
+        port.writeBytes(ch9329KeyboardFrame(modifier: modifier, keys: keys))
     }
 
     /// CMD 0x04: absolute mouse — report id 0x02, x/y scaled to 0…4095 of the screen.
     func mouseAbsolute(buttons: UInt8, x: Int, y: Int, wheel: Int8, width: Int, height: Int) {
-        let ax = width > 0 ? max(0, min(4095, x * 4096 / width)) : 0
-        let ay = height > 0 ? max(0, min(4095, y * 4096 / height)) : 0
-        send(cmd: 0x04, data: [
-            0x02, buttons,
-            UInt8(ax & 0xFF), UInt8((ax >> 8) & 0xFF),
-            UInt8(ay & 0xFF), UInt8((ay >> 8) & 0xFF),
-            UInt8(bitPattern: wheel),
-        ])
+        port.writeBytes(ch9329AbsoluteMouseFrame(buttons: buttons, x: x, y: y, wheel: wheel,
+                                                 width: width, height: height))
     }
 
     /// CMD 0x05: relative mouse — report id 0x01, signed dx/dy/wheel.
     func mouseRelative(buttons: UInt8, dx: Int8, dy: Int8, wheel: Int8) {
-        send(cmd: 0x05, data: [
-            0x01, buttons,
-            UInt8(bitPattern: dx), UInt8(bitPattern: dy), UInt8(bitPattern: wheel),
-        ])
+        port.writeBytes(ch9329RelativeMouseFrame(buttons: buttons, dx: dx, dy: dy, wheel: wheel))
     }
+}
+
+// MARK: Pure frame builders (testable without a serial port)
+
+/// CMD 0x02 keyboard report frame: `[modifier, 0x00, key1…key6]`, keys truncated/padded to 6.
+public func ch9329KeyboardFrame(modifier: UInt8, keys: [UInt8]) -> [UInt8] {
+    var k = Array(keys.prefix(6))
+    while k.count < 6 { k.append(0) }
+    return ch9329Frame(cmd: 0x02, data: [modifier, 0x00] + k)
+}
+
+/// CMD 0x04 absolute-mouse frame: report id 0x02, x/y scaled to 0…4095 of the screen.
+public func ch9329AbsoluteMouseFrame(buttons: UInt8, x: Int, y: Int, wheel: Int8,
+                                     width: Int, height: Int) -> [UInt8] {
+    let ax = width > 0 ? max(0, min(4095, x * 4096 / width)) : 0
+    let ay = height > 0 ? max(0, min(4095, y * 4096 / height)) : 0
+    return ch9329Frame(cmd: 0x04, data: [
+        0x02, buttons,
+        UInt8(ax & 0xFF), UInt8((ax >> 8) & 0xFF),
+        UInt8(ay & 0xFF), UInt8((ay >> 8) & 0xFF),
+        UInt8(bitPattern: wheel),
+    ])
+}
+
+/// CMD 0x05 relative-mouse frame: report id 0x01, signed dx/dy/wheel.
+public func ch9329RelativeMouseFrame(buttons: UInt8, dx: Int8, dy: Int8, wheel: Int8) -> [UInt8] {
+    ch9329Frame(cmd: 0x05, data: [
+        0x01, buttons,
+        UInt8(bitPattern: dx), UInt8(bitPattern: dy), UInt8(bitPattern: wheel),
+    ])
 }
 
 /// Build a CH9329 frame: `0x57 0xAB 0x00 <cmd> <len> <data…> <checksum>`, where checksum is

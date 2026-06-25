@@ -3,7 +3,7 @@ import Foundation
 /// Loads, persists, and matches hardware profiles. Backed by a user-editable JSON file at
 /// ~/Library/Application Support/OpenCrashCart/profiles.json, seeded with built-in defaults.
 public final class ProfileStore: @unchecked Sendable {
-    public static let shared = ProfileStore()
+    public static let shared = ProfileStore(fileURL: ProfileStore.defaultFileURL())
 
     private let lock = NSLock()
     private let fileURL: URL
@@ -28,12 +28,16 @@ public final class ProfileStore: @unchecked Sendable {
             builtIn: true),
     ]
 
-    private init() {
+    private static func defaultFileURL() -> URL {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("OpenCrashCart", isDirectory: true)
         try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
-        fileURL = support.appendingPathComponent("profiles.json")
+        return support.appendingPathComponent("profiles.json")
+    }
 
+    /// Designated init. `shared` uses the per-user `profiles.json`; tests inject a temp file.
+    public init(fileURL: URL) {
+        self.fileURL = fileURL
         if let data = try? Data(contentsOf: fileURL),
            let cfg = try? JSONDecoder().decode(Config.self, from: data) {
             _profiles = cfg.profiles.isEmpty ? Self.builtIns : cfg.profiles

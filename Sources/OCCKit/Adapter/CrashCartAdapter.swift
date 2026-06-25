@@ -89,15 +89,8 @@ public extension CrashCartAdapter {
         guard !strokes.isEmpty else { return }
         DispatchQueue.global(qos: .userInitiated).async {
             for s in strokes {
-                if s.shift {
-                    self.send(key: HIDKeyEvent(usage: 0xE1, modifiers: 0, isDown: true, allReleased: false))
-                }
-                self.send(key: HIDKeyEvent(usage: s.usage, modifiers: 0, isDown: true, allReleased: false))
-                self.send(key: HIDKeyEvent(usage: s.usage, modifiers: 0, isDown: false, allReleased: !s.shift))
-                if s.shift {
-                    self.send(key: HIDKeyEvent(usage: 0xE1, modifiers: 0, isDown: false, allReleased: true))
-                }
-                Thread.sleep(forTimeInterval: 0.007)
+                for e in HIDTyping.keyEvents(usage: s.usage, shift: s.shift) { self.send(key: e) }
+                Thread.sleep(forTimeInterval: 0.007)   // light pacing so fast typing registers
             }
         }
     }
