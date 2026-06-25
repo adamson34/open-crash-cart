@@ -47,7 +47,7 @@ Derived from the brownfield ingest (validated PASS/TRUST). Each NFR cites where 
 
 ## Configurability
 - NFR-CFG-01 5 `OCC_*` env vars. NFR-CFG-02 UserDefaults padding (clamped). NFR-CFG-03 profiles.json (BYO firmware).
-- NFR-CFG-04 firmware search precedence (profile→env→store→app-support→vendor). NFR-CFG-05 hardcoded /opt/homebrew (build-time).
+- NFR-CFG-04 firmware search precedence — canonical 7-tier order in BC-1.01.013 (profile.firmwareDir, OCC_FIRMWARE_DIR, store dir, app-support, 3 vendor paths). NFR-CFG-05 hardcoded /opt/homebrew (build-time).
 - NFR-CFG-06 device-side DDC/MISC tuning + client-side display-only enhancement.
 
 ## Portability / build

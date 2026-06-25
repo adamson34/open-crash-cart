@@ -19,7 +19,7 @@ domain_facts: [DF-200, DF-201]
 
 ## Description
 
-Firmware lookup uses a two-tier hierarchy. A `HardwareProfile` may carry a per-profile `firmwareDir: String?` override (DF-200). Separately, `ProfileStore` exposes a store-wide `firmwareDirectory: String?` (DF-200). When both are set the per-profile `firmwareDir` takes precedence; neither field is required. The fallback path is the App Support firmware directory (`applicationSupportFirmwareDir`) which is derived at runtime and never persisted (DF-201).
+**Scope (adversary B10/F-05):** this BC covers ONLY the profile-vs-store override sub-relationship (DF-200/201) — NOT the full precedence list. The complete 7-tier search chain (incl. `OCC_FIRMWARE_DIR` + the three vendor paths) is canonical in **BC-1.01.013** (../ss-01/BC-1.01.013.md); this BC contributes the profile/store directories as inputs to it. Within that chain, a `HardwareProfile` may carry a per-profile `firmwareDir: String?` override (DF-200). Separately, `ProfileStore` exposes a store-wide `firmwareDirectory: String?` (DF-200). When both are set the per-profile `firmwareDir` takes precedence; neither field is required. The fallback path is the App Support firmware directory (`applicationSupportFirmwareDir`) which is derived at runtime and never persisted (DF-201).
 
 ## Preconditions
 
@@ -59,7 +59,7 @@ Firmware lookup uses a two-tier hierarchy. A `HardwareProfile` may carry a per-p
 
 ## Error Handling
 
-No error is raised at the profile-tier level. An invalid path is passed downstream to `StarTechFirmware.loadFPGABitstream(profile:)` which handles file-not-found errors. See BC-052/053 (firmware search order) for full resolution logic.
+No error is raised at the profile-tier level. An invalid path is passed downstream to `StarTechFirmware.loadFPGABitstream(profile:)` which handles file-not-found errors. See BC-1.01.013 for the canonical full search order.
 
 ## Traceability
 
@@ -75,7 +75,7 @@ No error is raised at the profile-tier level. An invalid path is passed downstre
 ## Related BCs
 
 - BC-1.04.008 — composes with: `ProfileStore.firmwareDirectory` setter (BC-1.04.008 governs persistence)
-- BC-052 — firmware search order uses this two-tier result as first input
+- BC-1.01.013 — canonical firmware search order; consumes this profile/store result as inputs
 
 ## Architecture Anchors
 
