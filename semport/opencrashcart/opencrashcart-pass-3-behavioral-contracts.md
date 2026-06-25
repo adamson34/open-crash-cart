@@ -31,7 +31,7 @@ Confidence: HIGH=test-pinned or unambiguous constant; MEDIUM=code control-flow, 
 
 ## Input/HID (HIGH tests)
 - BC-030 keymap: 0x00→0x04,0x24→0x28,0x7E→0x52,0x38→0xE1. (KeymapTests)
-- BC-031 Command 0x37/0x36 unmapped (nil); unknown→nil. (KeymapTests)
+- BC-031 Command unmapped (nil); 0x37 test-pinned (HIGH), 0x36 comment-only (MEDIUM); unknown→nil. (KeymapTests; HIDKeymap.swift:50)
 - BC-032 isModifier 0xE0..0xE7. (KeymapTests)
 - BC-033 typing strokes: a→(0x04,F), A→(0x04,T), 1→(0x1E,F), !→(0x1E,T), space 0x2C, \n Enter; "Hi!" sequence. (TypingTests)
 - BC-034 unmapped chars skipped. (TypingTests)
