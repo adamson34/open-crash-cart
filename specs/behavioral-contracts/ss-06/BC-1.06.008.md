@@ -51,7 +51,7 @@ A test section must exist in `occ-tests` that verifies CH9329 mouse event coales
 ## Canonical Test Vectors
 | Input sequence | Expected `drain()` result | Category |
 |---------------|--------------------------|----------|
-| `store(MouseEvent(x:10,y:20))`, `store(MouseEvent(x:30,y:40))`, `store(MouseEvent(x:50,y:60))`, then `drain()` | `MouseEvent(x:50, y:60)` | happy-path (latest-wins) |
+| `store(MouseEvent(buttons:[],x:10,y:20,wheel:0,isAbsolute:true))`, then x:30/y:40, then x:50/y:60, then `drain()` | a MouseEvent with x:50,y:60 (the full init `MouseEvent(buttons:x:y:wheel:isAbsolute:)` is the only one) | happy-path (latest-wins) |
 | After above drain, call `drain()` again | `nil` | happy-path (destructive drain) |
 | Fresh coalescer, `drain()` | `nil` | edge (empty) |
 | `store(A)`, `drain()` → A, `store(B)`, `drain()` → B | Each drain returns its respective event | happy-path (per-flush independence) |
