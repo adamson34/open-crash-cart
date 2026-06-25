@@ -77,6 +77,7 @@ Everything else (113 contracts) formalizes existing v1.0.0 behavior as the L3 ba
 - **Stuck-key safety** — `releaseAllKeys` on every focus loss; ⌘ not forwarded (BC-1.05.018..020).
 - **Graceful degradation** — UVC view-only without CH9329; firmware-skip on load failure.
 - **Observability** — `AdapterEvent.message/.status`, fps/bandwidth, CLI logs (NFR-OBS-*).
+- **Accepted known divergences (synthesis P3, adversary L2)** — not defects, documented so they aren't mistaken for oversights: `StatusBar` `KeyboardEmulation.name` is array-indexed (latent out-of-range only if a 4th emulation enum case is ever added — closed enum today); the UI term "sharpness" maps to the protocol MISC index documented as "flatness" (vocabulary drift, behavior unaffected, see BC-1.04.018); UVC is reachable only via the app menu, never `makeAdapter`/CLIs (deliberate asymmetry).
 
 ## 5. Non-Functional Requirements
 See `prd-supplements/nfr-catalog.md` (Performance, Reliability, Security/clean-room, Observability,
