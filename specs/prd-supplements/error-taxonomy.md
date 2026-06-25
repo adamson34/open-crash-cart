@@ -20,6 +20,7 @@ logger). Principle: **fail-closed on device loss, degrade gracefully on local re
 | `GzipError` | Gunzip.swift | initFailed(rc), inflateFailed(rc) | via "FPGA load skipped" message |
 | `UVCError` | UVCAdapter.swift | cameraAccessDenied, deviceNotFound, configurationFailed | yes (actionable, e.g. permissions) |
 | `FirmwareError` | StarTechFirmware.swift | notFound(searched:[...]) | yes (lists every searched path) |
+| Vision OCR failure | OCR.swift (`VNImageRequestHandler.perform`) | no typed enum; surfaced as a status message — v1.1.0 (BC-1.03.012) via an explicit `Result<String,Error>` channel | yes ("OCR failed: <reason>") |
 
 ## Categories, severity, recovery
 
