@@ -21,7 +21,10 @@ full keyboard/mouse via their CH9329 serial-HID controller.
 
 ## Screenshots
 
-_Coming soon._
+<div align="center">
+<img src="assets/screenshots/no-adapter.png" width="760" alt="OpenCrashCart waiting for an adapter">
+<br><em>Plug in a USB crash-cart adapter or a UVC capture device and it connects automatically.</em>
+</div>
 
 ## Features
 
