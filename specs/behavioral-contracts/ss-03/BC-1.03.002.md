@@ -35,7 +35,7 @@ After Vision recognition completes, observations are sorted into reading order b
 
 - Band tolerance is exactly `0.012` (normalized, not pixels).
 - Only the top-ranked candidate per observation is used.
-- Join separator is always `"\n"`.
+- Join separator is always `"\n"` — line grouping (the 0.012 midY band) affects ORDER only, never the separator: EACH observation becomes its own output line; same-line words are NOT space-joined (adversary M6).
 - Observations with empty candidate lists are silently dropped.
 
 ## Edge Cases
