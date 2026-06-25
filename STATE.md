@@ -1,9 +1,9 @@
 ---
 pipeline: PHASE-1
-phase: phase-1
+phase: phase-1a
 product: opencrashcart
 mode: brownfield
-timestamp: 2026-06-25T14:10:00Z
+timestamp: 2026-06-25T14:30:00Z
 ---
 
 # OpenCrashCart — Factory State
