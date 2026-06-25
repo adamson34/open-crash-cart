@@ -5,7 +5,7 @@ status: complete
 traces_to: prd.md
 reviewers: 3x vsdd-factory:adversary (fresh-context, perspective-diverse)
 date: 2026-06-25
-verdict: NEEDS-REVISION
+verdict: REVISED (all blocking + high + medium addressed 2026-06-25)
 ---
 
 # Adversarial Review — OpenCrashCart PRD (v1.1.0)
@@ -64,3 +64,36 @@ mouse-vs-key ownership split, stuck-key safety, BC-INDEX integrity (124, no gaps
 Verdict **NEEDS-REVISION**. The baseline is sound; the **v1.1.0 change set + supplements need a revision pass**
 before architecture/implementation. Recommended order: B1–B11 (blocking) → H1–H6 → sweep numeric vectors (B8) →
 re-review the revised change BCs.
+
+---
+
+## Revision Applied (2026-06-25)
+
+All BLOCKING, HIGH, MEDIUM, and LOW items were addressed in separate commits on `factory-artifacts`:
+
+| Item | Resolution |
+|------|------------|
+| B1 (test visibility wall) | Each SS-06 backfill BC now names its required public-API delta (extract pure core / promote clean unit) |
+| B2/B3/B4 (keyframe) | BC-1.02.018 rewritten: reachable triggers (tileY≥tilesHigh, sustained no-decode) + bounded `keyframeRequested` latch |
+| B5 | BC-1.06.004 USBError→USBTransportError + extract public `mapLibusbResult` |
+| B6 | BC-1.06.007 correct bps formula + state enum, extract pure compute/derive |
+| B7 | BC-1.06.008 re-anchored to UVCAdapter + extract public `MouseCoalescer` |
+| B8 | BC-1.05.012 vector fixed (4093/4092); sweep found + fixed 3 more (BC-1.02.014/001/005) |
+| B9 | STATUS parse merged → BC-1.02.010 canonical; BC-1.01.005 deprecated |
+| B10 | Firmware order reconciled to canonical BC-1.01.013 (7-tier); BC-1.04.004 + NFR-CFG-04 reference it |
+| B11 | BC-1.02.019 auto-tune/autophase added |
+| H1 | BC-1.01.034 + eventTask.cancel() + stale-event isolation |
+| H2/H3 | BC-1.06.005 (VirtualMedia public/readOnly/temp-file), BC-1.06.006 (7-tier + injectable pure fn) |
+| H4 | All dangling `capabilities.md` anchors stripped |
+| H5/M5 | All capability IDs normalized to CAP-TBD (single scheme); PRD §7 now accurate |
+| H6/F-03/F-04 | BC-1.01.041/042 (CLIs) + BC-1.01.043 (link-speed) added |
+| M1 | BC-1.03.012 mandates explicit OCR error channel (no empty-string masking) |
+| M2 | BC-1.04.020 source-of-truth = string fields; `.vid`/`.pids` computed |
+| M3 | BC-1.06.010 splits regression-guard vs characterization tests |
+| M4 | All 128 BC frontmatter normalized to one schema |
+| M6 | BC-1.03.002 newline-join invariant clarified |
+| L1 | Vision OCR failure added to error-taxonomy |
+| L2 | P3 known divergences documented as accepted (PRD §4) |
+
+Baseline (existing-behavior) contracts were already verified trustworthy (22/23 sampled). A targeted
+re-review of the revised v1.1.0 change contracts is recommended before architecture.
