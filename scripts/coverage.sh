@@ -20,6 +20,10 @@ IGNORE='(occ-tests|Sources/occ/|occ-probe|occ-connect|\.build)'
 
 xcrun llvm-cov report "$BIN" -instr-profile="$COV/occ-tests.profdata" -ignore-filename-regex="$IGNORE"
 
+# lcov export at the repo root for Codecov upload (CI) / local inspection.
+xcrun llvm-cov export "$BIN" -instr-profile="$COV/occ-tests.profdata" \
+       -ignore-filename-regex="$IGNORE" -format=lcov > coverage.lcov
+
 TOTAL=$(xcrun llvm-cov export "$BIN" -instr-profile="$COV/occ-tests.profdata" \
         -ignore-filename-regex="$IGNORE" -summary-only \
         | python3 -c 'import sys,json; print("%.1f" % json.load(sys.stdin)["data"][0]["totals"]["lines"]["percent"])')

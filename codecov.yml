@@ -1,0 +1,17 @@
+# Coverage is informational — the build's required status check is `build-and-test`, not Codecov,
+# and only the OCCKit core library is measured (the AppKit UI, CLIs, and hardware-I/O paths need a
+# running app or real devices, so they aren't unit-tested here).
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+ignore:
+  - "Sources/occ"
+  - "Sources/occ-tests"
+  - "Sources/occ-probe"
+  - "Sources/occ-connect"

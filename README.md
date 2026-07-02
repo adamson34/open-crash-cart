@@ -7,6 +7,7 @@
 **A native macOS client for USB crash-cart adapters — open, clean-room, bring-your-own-firmware.**
 
 [![CI](https://github.com/adamson34/open-crash-cart/actions/workflows/ci.yml/badge.svg)](https://github.com/adamson34/open-crash-cart/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/adamson34/open-crash-cart/graph/badge.svg)](https://codecov.io/gh/adamson34/open-crash-cart)
 [![Release](https://img.shields.io/github/v/release/adamson34/open-crash-cart?include_prereleases)](https://github.com/adamson34/open-crash-cart/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%2013%2B%20·%20Apple%20Silicon-lightgrey)
@@ -20,7 +21,10 @@ full keyboard/mouse via their CH9329 serial-HID controller.
 
 ## Screenshots
 
-_Coming soon._
+<div align="center">
+<img src="assets/screenshots/no-adapter.png" width="760" alt="OpenCrashCart waiting for an adapter">
+<br><em>Plug in a USB crash-cart adapter or a UVC capture device and it connects automatically.</em>
+</div>
 
 ## Features
 

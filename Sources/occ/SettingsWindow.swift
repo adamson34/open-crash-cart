@@ -87,7 +87,23 @@ final class SettingsWindowController: NSWindowController {
         profilesSection.alignment = .leading
         profilesSection.spacing = 9
 
-        let main = NSStackView(views: [firmwareSection, NSBox.divider(), profilesSection])
+        // Updates section.
+        let devToggle = NSButton(checkboxWithTitle: "Receive dev (beta) builds",
+                                 target: self, action: #selector(toggleDevBuilds(_:)))
+        devToggle.state = UpdatePreferences.receiveDevBuilds ? .on : .off
+        devToggle.contentTintColor = Theme.shared.textPrimary
+        let updatesSection = NSStackView(views: [
+            sectionTitle("Updates"),
+            caption("OpenCrashCart checks for updates automatically. Enable dev builds to get "
+                  + "pre-release versions early — less tested, newer features."),
+            devToggle,
+        ])
+        updatesSection.orientation = .vertical
+        updatesSection.alignment = .leading
+        updatesSection.spacing = 7
+
+        let main = NSStackView(views: [firmwareSection, NSBox.divider(), profilesSection,
+                                       NSBox.divider(), updatesSection])
         main.orientation = .vertical
         main.alignment = .leading
         main.spacing = 16
@@ -157,6 +173,12 @@ final class SettingsWindowController: NSWindowController {
         row.translatesAutoresizingMaskIntoConstraints = false
         row.widthAnchor.constraint(equalToConstant: 540).isActive = true
         return row
+    }
+
+    // MARK: Updates
+
+    @objc private func toggleDevBuilds(_ sender: NSButton) {
+        UpdatePreferences.receiveDevBuilds = (sender.state == .on)
     }
 
     // MARK: Firmware actions

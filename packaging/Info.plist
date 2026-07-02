@@ -15,9 +15,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.1.0</string>
+    <string>1.2.0</string>
     <key>CFBundleVersion</key>
-    <string>3</string>
+    <string>4</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
@@ -30,5 +30,18 @@
     <string>OpenCrashCart displays the connected machine's screen from USB video capture (UVC) devices.</string>
     <key>NSHumanReadableCopyright</key>
     <string>OpenCrashCart — open-source crash-cart client.</string>
+
+    <!-- Sparkle auto-update. The feed is a single appcast; dev/beta builds are tagged with
+         <sparkle:channel>dev</sparkle:channel> and only reach users who opt into dev builds.
+         SUPublicEDKey is the EdDSA public half; the private key lives in the release machine's
+         login Keychain (generate_keys). Replace both the feed URL and key if you fork. -->
+    <key>SUFeedURL</key>
+    <string>https://adamson34.github.io/open-crash-cart/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>afN3LFYcAKvD4JpuLAw8xuL4+Iotain6RZz8eMvOHz4=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
 </dict>
 </plist>
