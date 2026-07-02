@@ -133,11 +133,22 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
         }
     }
 
+    /// Pure: encode a MISC adjustment value to its wire byte. posX/posY (horizontal/vertical) are
+    /// read back **signed** by parseStatus; phase/noise/flatness are read back **unsigned**. Clamp
+    /// per-field to the matching range so the byte round-trips regardless of caller input (C-7).
+    public static func miscByte(_ a: VideoAdjustment, value: Int) -> UInt8 {
+        switch a {
+        case .horizontal, .vertical:
+            return UInt8(bitPattern: Int8(max(-128, min(127, value))))
+        case .phase, .noise, .sharpness:
+            return UInt8(max(0, min(255, value)))
+        }
+    }
+
     public func setVideoAdjustment(_ a: VideoAdjustment, value: Int) {
         guard let idx = Self.miscIndex(a) else { return }
-        let clamped = max(-128, min(255, value))
-        let byte = UInt8(clamped < 0 ? 256 + clamped : clamped)
-        queue.enqueue([VSProtocol.Command.setMisc.rawValue, idx, byte], priority: .control)
+        queue.enqueue([VSProtocol.Command.setMisc.rawValue, idx, Self.miscByte(a, value: value)],
+                      priority: .control)
     }
 
     public func saveVideoAdjustment(_ a: VideoAdjustment) {
