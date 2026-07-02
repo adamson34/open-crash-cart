@@ -221,7 +221,7 @@ final class ToolbarStrip: NSView {
         stack.addArrangedSubview(button("bolt.horizontal.circle", "Send Ctrl-Alt-Del", #selector(onCAD)))
         stack.addArrangedSubview(button("keyboard", "On-screen keyboard", #selector(onKeyboard)))
         bootButton = ToolbarMenuButton(
-            symbol: "power", stopSymbol: "stop.circle",
+            symbol: "f.square", stopSymbol: "stop.circle",
             tip: "Boot-menu hotkeys (Del / F2 / F12 · auto-hammer)",
             stopTip: "Stop hammering boot key")
         bootButton.menuBuilder = { [weak self] in self?.buildBootMenu() ?? NSMenu() }
@@ -283,6 +283,10 @@ final class ToolbarStrip: NSView {
         let hammerCustom = NSMenuItem(title: "Custom Combo…", action: #selector(onBootCustomHammer), keyEquivalent: "")
         hammerCustom.target = self
         hammerMenu.addItem(hammerCustom)
+        hammerMenu.addItem(.separator())
+        let hint = NSMenuItem(title: "Stops on any keypress, a click, or after 30s", action: nil, keyEquivalent: "")
+        hint.isEnabled = false
+        hammerMenu.addItem(hint)
         let hammerItem = NSMenuItem(title: "Auto-Hammer (30s)", action: nil, keyEquivalent: "")
         hammerItem.submenu = hammerMenu
         menu.addItem(hammerItem)

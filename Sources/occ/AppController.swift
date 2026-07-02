@@ -11,6 +11,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     private var root: NSView!
     private var videoView: VideoView!
     private var placeholder: PlaceholderView!
+    private var hammerHUD: HammerHUD!
     private var screenCard: NSView!
     private var toolbar: ToolbarStrip!
     private var statusBar: StatusBar!
@@ -85,15 +86,21 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         videoView.input = self
         videoView.onRegionSelected = { [weak self] image in self?.handleOCR(image) }
         placeholder = PlaceholderView(frame: .zero)
+        hammerHUD = HammerHUD(frame: .zero)
 
         [toolbar, screenCard, statusBar].forEach {
             $0!.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview($0!)
         }
-        [videoView, placeholder].forEach {
+        [videoView, placeholder, hammerHUD].forEach {
             $0!.translatesAutoresizingMaskIntoConstraints = false
             screenCard.addSubview($0!)
         }
+        // The hammer banner floats at the top-center of the screen card, above the video.
+        NSLayoutConstraint.activate([
+            hammerHUD.topAnchor.constraint(equalTo: screenCard.topAnchor, constant: 14),
+            hammerHUD.centerXAnchor.constraint(equalTo: screenCard.centerXAnchor),
+        ])
 
         let p = theme.padding
         cardTop = screenCard.topAnchor.constraint(equalTo: toolbar.bottomAnchor, constant: p)
@@ -137,6 +144,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         showPlaceholder(.noAdapter)
         window.makeFirstResponder(videoView)
         window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)   // bring the window to the front on launch
 
         tryConnect()
         rescanTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
@@ -146,6 +154,11 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
             Timer.scheduledTimer(withTimeInterval: secs, repeats: false) { _ in
                 MainActor.assumeIsolated { NSApp.terminate(nil) }
             }
+        }
+        // Dev aid: preview the boot-key hammer banner without a connected target.
+        if let key = ProcessInfo.processInfo.environment["OCC_PREVIEW_HAMMER"] {
+            let hotkey = BootHotkey.parse(key) ?? BootHotkey.preset("F12")!
+            startHammer(hotkey, preview: true)
         }
     }
 
@@ -543,26 +556,33 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
 
     /// Start hammering a boot hotkey on a steady cadence for `hammerDuration`. Stops on timeout,
     /// on any physical keypress (see `sendKey`), or when the stop button is clicked.
-    func hammerBootHotkey(_ hotkey: BootHotkey) {
-        guard adapter != nil else { statusBar.setMessage("Connect to a target first."); return }
+    func hammerBootHotkey(_ hotkey: BootHotkey) { startHammer(hotkey, preview: false) }
+
+    /// Core hammer loop. `preview` is a UI-only dry run (no target required, no keystrokes sent)
+    /// so the banner and stop control can be seen without hardware — used by `OCC_PREVIEW_HAMMER`.
+    private func startHammer(_ hotkey: BootHotkey, preview: Bool) {
+        guard preview || adapter != nil else { statusBar.setMessage("Connect to a target first."); return }
         stopBootHammer()                       // clear any in-flight hammer first
         hammerHotkey = hotkey
         hammerGeneration += 1
         let gen = hammerGeneration             // Sendable token: ignore ticks from a stale timer
         toolbar.setHammering(true)
+        hammerHUD.show(hotkey: hotkey.label, secondsLeft: Int(hammerDuration))
         window.makeFirstResponder(videoView)   // so a physical keypress can cancel it
         var elapsed = 0.0
         // Fire once immediately so there's no perceptible lag before the first tap.
-        sendChord(modifiers: hotkey.modifiers, usage: hotkey.usage)
-        statusBar.setMessage("Hammering \(hotkey.label) — press any key or click ⏹ to stop (\(Int(hammerDuration))s)")
+        if !preview { sendChord(modifiers: hotkey.modifiers, usage: hotkey.usage) }
+        let note = preview ? " (preview — nothing sent)" : ""
+        statusBar.setMessage("Hammering \(hotkey.label) — press any key or click ⏹ to stop (\(Int(hammerDuration))s)\(note)")
         hammerTimer = Timer.scheduledTimer(withTimeInterval: hammerInterval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, self.hammerGeneration == gen else { return }
                 elapsed += self.hammerInterval
                 if elapsed >= self.hammerDuration { self.stopBootHammer(); return }
-                self.sendChord(modifiers: hotkey.modifiers, usage: hotkey.usage)
+                if !preview { self.sendChord(modifiers: hotkey.modifiers, usage: hotkey.usage) }
                 let left = Int(ceil(self.hammerDuration - elapsed))
-                self.statusBar.setMessage("Hammering \(hotkey.label) — press any key or click ⏹ to stop (\(left)s)")
+                self.hammerHUD.update(secondsLeft: left, hotkey: hotkey.label)
+                self.statusBar.setMessage("Hammering \(hotkey.label) — press any key or click ⏹ to stop (\(left)s)\(note)")
             }
         }
     }
@@ -576,6 +596,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         let label = hammerHotkey?.label
         hammerHotkey = nil
         toolbar.setHammering(false)
+        hammerHUD.hide()
         statusBar.setMessage(label.map { "Stopped hammering \($0)." } ?? "Stopped hammering.")
     }
 
