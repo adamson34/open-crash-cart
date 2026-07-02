@@ -1,12 +1,18 @@
 #!/bin/bash
 # Build OpenCrashCart.app — a self-contained, double-clickable macOS app bundle.
-# Bundles libusb inside Contents/Frameworks, generates an icon, writes Info.plist,
-# and ad-hoc code-signs so it launches from Finder.
+# Bundles libusb + Sparkle inside Contents/Frameworks, generates an icon, writes Info.plist,
+# and code-signs so it launches from Finder.
+#
+# Signing identity defaults to ad-hoc (-). For a distributable/notarizable build, pass a
+# Developer ID:  OCC_SIGN_ID="Developer ID Application: Your Name (TEAMID)" scripts/make-app.sh
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 APP="$ROOT/dist/OpenCrashCart.app"
+SIGN_ID="${OCC_SIGN_ID:--}"                       # "-" = ad-hoc
+SIGN_FLAGS=(--force -s "$SIGN_ID")
+[ "$SIGN_ID" != "-" ] && SIGN_FLAGS+=(--options runtime --timestamp)   # hardened runtime for notarization
 
 echo "▸ Building release binary…"
 swift build -c release >/dev/null
@@ -41,8 +47,26 @@ else
 fi
 
 echo "▸ Code-signing (ad-hoc)…"
-codesign --force -s - "$APP/Contents/Frameworks/libusb-1.0.0.dylib"
-codesign --force -s - "$APP"
+codesign "${SIGN_FLAGS[@]}" "$APP/Contents/Frameworks/libusb-1.0.0.dylib"
+
+echo "▸ Bundling Sparkle.framework…"
+SPARKLE_FW="$(find "$ROOT/.build/artifacts" -type d -path '*/Sparkle.xcframework/macos-*/Sparkle.framework' -print -quit)"
+if [ -n "$SPARKLE_FW" ]; then
+    ditto "$SPARKLE_FW" "$APP/Contents/Frameworks/Sparkle.framework"
+    FW="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
+    # Sign inside-out: nested helpers first, then the framework.
+    codesign "${SIGN_FLAGS[@]}" "$FW/XPCServices/Downloader.xpc"
+    codesign "${SIGN_FLAGS[@]}" "$FW/XPCServices/Installer.xpc"
+    codesign "${SIGN_FLAGS[@]}" "$FW/Autoupdate"
+    codesign "${SIGN_FLAGS[@]}" "$FW/Updater.app"
+    codesign "${SIGN_FLAGS[@]}" "$APP/Contents/Frameworks/Sparkle.framework"
+else
+    echo "  ⚠ Sparkle.framework not found under .build/artifacts — run 'swift build' first."
+    echo "    Auto-update will be unavailable in this bundle."
+fi
+
+# Sign the app last so its seal covers the embedded frameworks.
+codesign "${SIGN_FLAGS[@]}" "$APP"
 
 echo "✓ Built $APP"
 echo "  Open with:  open dist/OpenCrashCart.app    (or double-click it in Finder)"
