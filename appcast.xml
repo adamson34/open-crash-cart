@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"
+     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>OpenCrashCart</title>
+    <link>https://adamson34.github.io/open-crash-cart/appcast.xml</link>
+    <description>OpenCrashCart software updates</description>
+    <language>en</language>
+    <!-- No <item>s yet: Sparkle reports "you're up to date". Release builds populate this
+         file via scripts/release-appcast.sh (see docs/UPDATES.md). -->
+  </channel>
+</rss>
