@@ -53,6 +53,14 @@ final class AtomicFlag: @unchecked Sendable {
     init(_ initial: Bool) { value = initial }
     func get() -> Bool { lock.lock(); defer { lock.unlock() }; return value }
     func set(_ newValue: Bool) { lock.lock(); value = newValue; lock.unlock() }
+    /// Atomically set to `newValue` iff the current value equals `expected`; returns true if it
+    /// changed. Used to elect a single teardown winner across the I/O threads.
+    func compareAndSet(expected: Bool, _ newValue: Bool) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        guard value == expected else { return false }
+        value = newValue
+        return true
+    }
 }
 
 /// Sequential big-endian reader for parsing fixed-layout protocol messages.
