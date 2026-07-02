@@ -64,6 +64,10 @@ public final class StarTechTileDecoder: StarTechVideoDecoding, @unchecked Sendab
         var data = chunk
 
         // 1) Finish any record split across the previous transfer.
+        //    `baseOffset` = bytes consumed here to complete that record. The remaining data
+        //    therefore sits at absolute transfer offset `baseOffset`, which the 512-byte padding
+        //    alignment must account for — otherwise padding after a split record desyncs (C-4).
+        var baseOffset = 0
         if leftoverNeeded > 0 {
             let want = leftoverNeeded - leftover.count
             let take = min(want, data.count)
@@ -75,13 +79,14 @@ public final class StarTechTileDecoder: StarTechVideoDecoding, @unchecked Sendab
                 leftover.removeAll(keepingCapacity: true)
                 leftoverNeeded = 0
                 _ = processRecord(buf, at: 0)   // self-contained; padding can't occur here
+                baseOffset = take
             } else {
                 return nil                      // still incomplete; wait for more
             }
         }
 
         // 2) Process whole records from the current transfer.
-        processBuffer(data)
+        processBuffer(data, baseOffset: baseOffset)
 
         // 3) Desync detection (BC-1.02.018) — request a keyframe when the stream looks corrupt:
         //    (a) a burst of out-of-range tile coordinates in one transfer (garbage data), or
@@ -108,18 +113,20 @@ public final class StarTechTileDecoder: StarTechVideoDecoding, @unchecked Sendab
 
     // MARK: Stream parsing
 
-    /// Walk tile records starting at offset 0. `pos` tracks the absolute position within
-    /// this transfer (needed for 512-byte padding alignment).
-    private func processBuffer(_ data: [UInt8]) {
+    /// Walk tile records in `data`. `baseOffset` is the absolute position (within the current
+    /// USB transfer) of `data`'s first byte — non-zero when a split record was completed off the
+    /// front of this transfer. The absolute position `baseOffset + pos` drives 512-byte padding
+    /// alignment.
+    private func processBuffer(_ data: [UInt8], baseOffset: Int) {
         var pos = 0
         let count = data.count
         while count - pos >= 4 {
             let word0 = u16(data, pos)
             let word1 = u16(data, pos + 2)
 
-            // Padding → advance to next 512-byte boundary.
+            // Padding → advance to next 512-byte boundary (measured from the transfer start).
             if word0 == 0xFFFF && word1 == 0xFFFF {
-                let skip = min(512 - (pos & 511), count - pos)
+                let skip = min(512 - ((baseOffset + pos) & 511), count - pos)
                 pos += skip
                 continue
             }
