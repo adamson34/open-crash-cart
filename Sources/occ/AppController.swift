@@ -11,6 +11,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     private var root: NSView!
     private var videoView: VideoView!
     private var placeholder: PlaceholderView!
+    private var hammerHUD: HammerHUD!
     private var screenCard: NSView!
     private var toolbar: ToolbarStrip!
     private var statusBar: StatusBar!
@@ -40,6 +41,14 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     private var relativeMouse = false
     private var recorder: Recorder?
     private var relativeMouseItem: NSMenuItem!
+
+    // Boot-menu hotkey hammer: a repeating timer that taps a chosen key during POST until it
+    // times out (30s), the user presses a physical key, or they click the stop button.
+    private var hammerTimer: Timer?
+    private var hammerHotkey: BootHotkey?
+    private var hammerGeneration = 0
+    private let hammerInterval = 0.12
+    private let hammerDuration = 30.0
 
     // MARK: Lifecycle
 
@@ -77,15 +86,21 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         videoView.input = self
         videoView.onRegionSelected = { [weak self] image in self?.handleOCR(image) }
         placeholder = PlaceholderView(frame: .zero)
+        hammerHUD = HammerHUD(frame: .zero)
 
         [toolbar, screenCard, statusBar].forEach {
             $0!.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview($0!)
         }
-        [videoView, placeholder].forEach {
+        [videoView, placeholder, hammerHUD].forEach {
             $0!.translatesAutoresizingMaskIntoConstraints = false
             screenCard.addSubview($0!)
         }
+        // The hammer banner floats at the top-center of the screen card, above the video.
+        NSLayoutConstraint.activate([
+            hammerHUD.topAnchor.constraint(equalTo: screenCard.topAnchor, constant: 14),
+            hammerHUD.centerXAnchor.constraint(equalTo: screenCard.centerXAnchor),
+        ])
 
         let p = theme.padding
         cardTop = screenCard.topAnchor.constraint(equalTo: toolbar.bottomAnchor, constant: p)
@@ -129,6 +144,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         showPlaceholder(.noAdapter)
         window.makeFirstResponder(videoView)
         window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)   // bring the window to the front on launch
 
         tryConnect()
         rescanTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
@@ -139,11 +155,17 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
                 MainActor.assumeIsolated { NSApp.terminate(nil) }
             }
         }
+        // Dev aid: preview the boot-key hammer banner without a connected target.
+        if let key = ProcessInfo.processInfo.environment["OCC_PREVIEW_HAMMER"] {
+            let hotkey = BootHotkey.parse(key) ?? BootHotkey.preset("F12")!
+            startHammer(hotkey, preview: true)
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
     func applicationWillTerminate(_ notification: Notification) {
+        stopBootHammer()
         eventTask?.cancel()
         let a = adapter
         Task { await a?.disconnect() }
@@ -230,6 +252,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     @objc private func menuConnectUVC(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         // Tear down whatever's connected, then start the UVC session.
+        stopBootHammer()
         if let current = adapter { Task { await current.disconnect() } }
         eventTask?.cancel()
         userDisconnected = false
@@ -284,6 +307,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         case .mediaChanged(let name):
             statusBar.setMedia(name)
         case .disconnected(let reason):
+            stopBootHammer()
             statusBar.setMessage("Disconnected: \(reason) — rescanning…")
             window.title = "OpenCrashCart"
             adapter = nil
@@ -414,6 +438,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     // MARK: Menu actions
 
     @objc private func menuReconnect() {
+        stopBootHammer()
         if let a = adapter { Task { await a.disconnect() } }
         eventTask?.cancel()
         userDisconnected = false
@@ -423,6 +448,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         tryConnect()
     }
     @objc private func menuDisconnect() {
+        stopBootHammer()
         if let a = adapter { Task { await a.disconnect() } }
         eventTask?.cancel()
         userDisconnected = true                 // stay disconnected until an explicit reconnect
@@ -505,6 +531,9 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     // MARK: VideoViewInput (UI → device)
 
     func sendKey(usage: UInt8, isDown: Bool, allReleased: Bool) {
+        // A real keypress from the user means they've taken over — stop hammering, but still
+        // forward the key so their input reaches the target.
+        if isDown, hammerTimer != nil { stopBootHammer() }
         adapter?.send(key: HIDKeyEvent(usage: usage, modifiers: 0, isDown: isDown, allReleased: allReleased))
     }
     func sendMouse(buttons: MouseButtons, x: Int16, y: Int16, wheel: Int16, absolute: Bool) {
@@ -515,6 +544,81 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
 
     func ctrlAltDel()             { adapter?.sendCtrlAltDel() }
     func refreshScreen()          { adapter?.requestKeyframe() }
+
+    // MARK: Boot-menu hotkeys
+
+    /// Tap a boot hotkey once (Del/F2/F12/custom), for catching the window by hand.
+    func sendBootHotkey(_ hotkey: BootHotkey) {
+        guard adapter != nil else { statusBar.setMessage("Connect to a target first."); return }
+        sendChord(modifiers: hotkey.modifiers, usage: hotkey.usage)
+        statusBar.setMessage("Sent \(hotkey.label) to target.")
+    }
+
+    /// Start hammering a boot hotkey on a steady cadence for `hammerDuration`. Stops on timeout,
+    /// on any physical keypress (see `sendKey`), or when the stop button is clicked.
+    func hammerBootHotkey(_ hotkey: BootHotkey) { startHammer(hotkey, preview: false) }
+
+    /// Core hammer loop. `preview` is a UI-only dry run (no target required, no keystrokes sent)
+    /// so the banner and stop control can be seen without hardware — used by `OCC_PREVIEW_HAMMER`.
+    private func startHammer(_ hotkey: BootHotkey, preview: Bool) {
+        guard preview || adapter != nil else { statusBar.setMessage("Connect to a target first."); return }
+        stopBootHammer()                       // clear any in-flight hammer first
+        hammerHotkey = hotkey
+        hammerGeneration += 1
+        let gen = hammerGeneration             // Sendable token: ignore ticks from a stale timer
+        toolbar.setHammering(true)
+        hammerHUD.show(hotkey: hotkey.label, secondsLeft: Int(hammerDuration))
+        window.makeFirstResponder(videoView)   // so a physical keypress can cancel it
+        var elapsed = 0.0
+        // Fire once immediately so there's no perceptible lag before the first tap.
+        if !preview { sendChord(modifiers: hotkey.modifiers, usage: hotkey.usage) }
+        let note = preview ? " (preview — nothing sent)" : ""
+        statusBar.setMessage("Hammering \(hotkey.label) — press any key or click ⏹ to stop (\(Int(hammerDuration))s)\(note)")
+        hammerTimer = Timer.scheduledTimer(withTimeInterval: hammerInterval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.hammerGeneration == gen else { return }
+                elapsed += self.hammerInterval
+                if elapsed >= self.hammerDuration { self.stopBootHammer(); return }
+                if !preview { self.sendChord(modifiers: hotkey.modifiers, usage: hotkey.usage) }
+                let left = Int(ceil(self.hammerDuration - elapsed))
+                self.hammerHUD.update(secondsLeft: left, hotkey: hotkey.label)
+                self.statusBar.setMessage("Hammering \(hotkey.label) — press any key or click ⏹ to stop (\(left)s)\(note)")
+            }
+        }
+    }
+
+    /// Stop the hammer if one is running. Safe to call unconditionally.
+    func stopBootHammer() {
+        guard hammerTimer != nil else { return }
+        hammerTimer?.invalidate()
+        hammerTimer = nil
+        hammerGeneration += 1                  // ignore any tick already queued from this timer
+        let label = hammerHotkey?.label
+        hammerHotkey = nil
+        toolbar.setHammering(false)
+        hammerHUD.hide()
+        statusBar.setMessage(label.map { "Stopped hammering \($0)." } ?? "Stopped hammering.")
+    }
+
+    /// Ask for a custom combo (e.g. "Ctrl+Alt+F1"), then send it once or start hammering it.
+    func promptCustomBootCombo(hammer: Bool) {
+        let alert = NSAlert()
+        alert.messageText = hammer ? "Auto-Hammer Custom Combo" : "Send Custom Combo"
+        alert.informativeText = "Enter a boot hotkey, e.g. \"F12\", \"Del\", or \"Ctrl+Alt+F1\"."
+        alert.addButton(withTitle: hammer ? "Hammer 30s" : "Send")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        field.placeholderString = "F12"
+        alert.accessoryView = field
+        alert.beginSheetModal(for: window) { [weak self] resp in
+            guard let self, resp == .alertFirstButtonReturn else { return }
+            guard let hotkey = BootHotkey.parse(field.stringValue) else {
+                self.statusBar.setMessage("Unrecognized combo: “\(field.stringValue)”")
+                return
+            }
+            if hammer { self.hammerBootHotkey(hotkey) } else { self.sendBootHotkey(hotkey) }
+        }
+    }
 
     func toggleRecording() {
         if recorder != nil {
