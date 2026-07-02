@@ -57,6 +57,23 @@ func runTileDecoderTests(_ t: Harness) {
         t.expectEqual(bgra(f, 8, 8).1, 0xFC, "reassembled tile decodes correctly")
     }
 
+    do {  // C-4: padding after a split-record completion aligns to the absolute transfer offset
+        let d = StarTechTileDecoder(); d.setActiveSize(width: 64, height: 64)
+        let body = Array(repeating: le16(0x07E0), count: 256).flatMap { $0 }
+        let raw = tileHeader(x: 0, y: 0, solid: false, first: true, word0: 1) + body  // 516 bytes
+        // Transfer 1: first 300 bytes of the raw tile → incomplete.
+        t.expect(d.ingest(Array(raw[0..<300])) == nil, "split raw tile: first transfer yields no frame")
+        // Transfer 2: the 216-byte tail (abs offset 0..216) + a padding record + a solid tile.
+        // The padding must skip 512-(216)=296 bytes (abs 216→512); if the decoder ignored the
+        // 216-byte base offset it would skip 512 and swallow the solid tile.
+        var t2 = Array(raw[300..<516])                       // 216-byte tail
+        t2 += [0xFF, 0xFF, 0xFF, 0xFF]                       // padding marker at abs 216
+        t2 += Array(repeating: 0, count: 296 - 4)            // filler to the 512 boundary
+        t2 += tileHeader(x: 2, y: 2, solid: true, first: false, word0: 0x001F)  // blue tile at abs 512
+        let f2 = d.ingest(t2)!
+        t.expectEqual(bgra(f2, 34, 34).0, 0xF8, "solid tile after padding-past-split-record decodes (C-4)")
+    }
+
     t.section("Keyframe self-heal on desync (BC-1.02.018)")
 
     // A solid record with tileY ≥ 100 (tilesHigh) is always out-of-range garbage.
