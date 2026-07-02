@@ -16,6 +16,11 @@ let package = Package(
         .executable(name: "occ-connect", targets: ["occ-connect"]),
         .executable(name: "occ-tests", targets: ["occ-tests"]),
     ],
+    dependencies: [
+        // Sparkle powers in-app auto-update (appcast feed + EdDSA-signed updates). Only the
+        // GUI app links it; the CLI tools and OCCKit stay dependency-free.
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.0"),
+    ],
     targets: [
         .systemLibrary(name: "Clibusb", path: "Sources/Clibusb"),
         .systemLibrary(name: "Czlib", path: "Sources/Czlib"),
@@ -41,7 +46,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "occ",
-            dependencies: ["OCCKit"],
+            dependencies: ["OCCKit", .product(name: "Sparkle", package: "Sparkle")],
             linkerSettings: [.unsafeFlags(["-L\(homebrewLib)"])]
         ),
     ]

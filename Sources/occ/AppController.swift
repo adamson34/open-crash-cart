@@ -41,6 +41,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     private var relativeMouse = false
     private var recorder: Recorder?
     private var relativeMouseItem: NSMenuItem!
+    private var updater: UpdaterManager?
 
     // Boot-menu hotkey hammer: a repeating timer that taps a chosen key during POST until it
     // times out (30s), the user presses a physical key, or they click the stop button.
@@ -53,6 +54,13 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     // MARK: Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Start Sparkle before the menu is used so "Check for Updates…" is live. Only when we're
+        // a real .app bundle — see UpdaterManager.isAvailable.
+        if UpdaterManager.isAvailable {
+            let u = UpdaterManager()
+            u.start()
+            updater = u
+        }
         installMenuBar()
         let theme = Theme.shared
         let initial = NSRect(x: 0, y: 0, width: 1100, height: 820)
@@ -334,6 +342,10 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         appMenu.addItem(withTitle: "About OpenCrashCart",
                         action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
+        let checkUpdates = mi("Check for Updates…", #selector(checkForUpdates))
+        checkUpdates.isEnabled = updater != nil          // disabled under `swift run` (no bundle)
+        appMenu.addItem(checkUpdates)
+        appMenu.addItem(.separator())
         appMenu.addItem(mi("Settings…", #selector(openSettings), ","))
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide OpenCrashCart",
@@ -518,6 +530,8 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
     @objc func increasePadding() { Theme.shared.adjust(by: 6) }
     @objc func decreasePadding() { Theme.shared.adjust(by: -6) }
     @objc func resetPadding()    { Theme.shared.reset() }
+
+    @objc private func checkForUpdates() { updater?.checkForUpdates() }
 
     @objc private func openSettings() {
         if settingsController == nil {

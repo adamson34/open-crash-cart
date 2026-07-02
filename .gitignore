@@ -18,3 +18,15 @@ reverse/
 
 # Generated coverage report (uploaded to Codecov in CI)
 coverage.lcov
+
+# Signing-key guard — the Sparkle EdDSA private key lives in the login Keychain and must
+# NEVER be committed. These patterns stop an accidental `generate_keys -x` export (or any
+# stray key/cert material) from being staged. The public key (SUPublicEDKey) is safe and
+# lives in packaging/Info.plist. See docs/UPDATES.md.
+*.pem
+*.p12
+*.key
+*private*key*
+*_key.txt
+sparkle_*key*
+eddsa_*
