@@ -20,7 +20,7 @@ FEED_URL="https://adamson34.github.io/open-crash-cart/appcast.xml"
 [ -f "$UPDATES_DIR/appcast.xml" ] || {
     echo "✗ $UPDATES_DIR/appcast.xml not found — run scripts/release-appcast.sh first."; exit 1; }
 
-echo "▸ Fetching $BRANCH…"
+echo "▸ Fetching ${BRANCH}…"
 git fetch -q origin "$BRANCH"
 
 # Fresh worktree checkout of gh-pages (lives under .build/, which is git-ignored).
