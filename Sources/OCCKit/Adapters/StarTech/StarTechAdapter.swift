@@ -48,9 +48,16 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
     private let queue = CommandQueue()
     private let mediaLock = NSLock()
     private var media: VirtualMedia?
+    // `continuation` is touched from the I/O threads (emit) and from teardown; `emitLock`
+    // serializes those so a yield never races the finish/nil during teardown (C-2).
+    private let emitLock = NSLock()
     private var continuation: AsyncStream<AdapterEvent>.Continuation?
     private let running = AtomicFlag(true)
     private var threads: [Thread] = []
+    // Every started thread enter()s this group and leave()s on exit, so teardown can join them
+    // before closing the device (C-1). `tearingDown` elects a single teardown winner (C-3).
+    private let ioGroup = DispatchGroup()
+    private let tearingDown = AtomicFlag(false)
 
     // Cached status to emit only on change.
     private var lastStatus = AdapterStatus()
@@ -226,13 +233,7 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
     }
 
     public func disconnect() async {
-        running.set(false)
-        closeMedia()
-        queue.close()
-        device?.close()
-        continuation?.yield(.disconnected(reason: "Closed by user"))
-        continuation?.finish()
-        continuation = nil
+        teardown(reason: "Closed by user")
     }
 
     // MARK: Boot sequence
@@ -429,7 +430,9 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
     // MARK: Helpers
 
     private func startThread(_ name: String, _ body: @escaping @Sendable () -> Void) {
-        let t = Thread { body() }
+        let group = ioGroup                       // capture the group, not self
+        group.enter()
+        let t = Thread { defer { group.leave() }; body() }
         t.name = name
         t.stackSize = 1 << 20
         threads.append(t)
@@ -437,16 +440,43 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
     }
 
     private func emit(_ event: AdapterEvent) {
-        continuation?.yield(event)
+        // Snapshot under the lock (retains the continuation's storage) then yield outside it, so
+        // an in-flight emit can't be torn by teardown niling `continuation` (C-2). Yielding on an
+        // already-finished continuation is a safe no-op.
+        emitLock.lock(); let cont = continuation; emitLock.unlock()
+        cont?.yield(event)
     }
 
+    /// The single teardown funnel for both user Disconnect and I/O-thread death. Idempotent (only
+    /// the first caller proceeds), and — crucially — it closes the USB device only AFTER every
+    /// reader thread has left `libusb_bulk_transfer`. Closing while a reader is still inside libusb
+    /// frees the handle/context out from under it (use-after-free, C-1).
     private func died(_ reason: String) {
-        guard running.get() else { return }
-        running.set(false)
-        queue.close()
-        continuation?.yield(.disconnected(reason: reason))
-        continuation?.finish()
-        continuation = nil
+        teardown(reason: reason)
+    }
+
+    private func teardown(reason: String) {
+        guard tearingDown.compareAndSet(expected: false, true) else { return }   // one winner (C-3)
+        running.set(false)      // signal the loops to stop
+        closeMedia()
+        queue.close()           // unblock the writer thread (it waits on the queue condition)
+
+        // Reclaim on a dedicated thread: it must not join an I/O thread from itself (a death call
+        // originates on one), and it must not block the caller (main actor / an I/O thread) on the
+        // libusb close.
+        Thread.detachNewThread { [self] in
+            // Wait for writer/response/video/boot to observe running==false and return; the readers
+            // are bounded by the 2 s bulk-transfer timeout. Only then is close() safe.
+            _ = ioGroup.wait(timeout: .now() + 5)
+            device?.close()
+
+            emitLock.lock()
+            let cont = continuation
+            continuation = nil
+            emitLock.unlock()
+            cont?.yield(.disconnected(reason: reason))
+            cont?.finish()
+        }
     }
 
     private func be16u(_ v: UInt16) -> [UInt8] { [UInt8(v >> 8), UInt8(v & 0xFF)] }
