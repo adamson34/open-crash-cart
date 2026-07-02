@@ -58,12 +58,25 @@ breaks updates for anyone on an older build — avoid unless the key is lost.
    scripts/release-appcast.sh dist/OpenCrashCart-<version>.zip --dev    # dev channel
    ```
 
-4. **Publish `dist/updates/`** (the `appcast.xml` **and** the `.zip`s) to **GitHub Pages** so it
-   is served at the `SUFeedURL` host. The script's `--download-url-prefix` already points there,
-   so the appcast's download links resolve to the published zips.
+4. **Publish to GitHub Pages.** The feed is served from the `gh-pages` branch; this script
+   overlays `dist/updates/` (appcast + zips) onto it and pushes:
 
-The `dist/updates/` directory is the running feed: keep past versions in it so `generate_appcast`
-can preserve their entries (and build delta updates) on each run.
+   ```sh
+   scripts/publish-pages.sh
+   ```
+
+   It preserves the existing landing page and past releases (additive only). Within a minute or
+   so the update is live at the `SUFeedURL`.
+
+The `dist/updates/` directory is your local mirror of the feed: keep past versions in it so
+`generate_appcast` can preserve their entries (and build delta updates) on each run.
+
+## Hosting layout
+
+GitHub Pages serves the **`gh-pages`** branch (root) at
+`https://adamson34.github.io/open-crash-cart/`. That branch holds `appcast.xml`, the release
+`.zip`s, a `.nojekyll` marker (so files are served verbatim), and an `index.html` landing page.
+`scripts/publish-pages.sh` is the only thing that should write to it.
 
 ## Notarization (recommended, separate concern)
 
