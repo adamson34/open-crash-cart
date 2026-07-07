@@ -479,8 +479,7 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
 
     func pasteText() {
         if let text = NSPasteboard.general.string(forType: .string), !text.isEmpty {
-            adapter?.typeText(text)
-            statusBar.setMessage("Pasting \(text.count) character\(text.count == 1 ? "" : "s") to target…")
+            sendTextToTarget(text, action: "Paste")
         } else {
             statusBar.setMessage("Clipboard has no text to paste.")
         }
@@ -496,7 +495,25 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
         field.placeholderString = "Text to type…"
         alert.accessoryView = field
         alert.beginSheetModal(for: window) { [weak self] resp in
-            if resp == .alertFirstButtonReturn { self?.adapter?.typeText(field.stringValue) }
+            if resp == .alertFirstButtonReturn { self?.sendTextToTarget(field.stringValue, action: "Type") }
+        }
+    }
+
+    /// Type `text` into the target as keystrokes, with start + completion status feedback so the
+    /// user can tell when the (asynchronous) paste/type has actually finished.
+    private func sendTextToTarget(_ text: String, action: String) {
+        guard !text.isEmpty else { return }
+        let count = text.count
+        statusBar.setMessage("Sending \(count) character\(count == 1 ? "" : "s") to target…")
+        adapter?.typeText(text) { [weak self] typed, skipped in
+            Task { @MainActor in
+                guard let self else { return }
+                var msg = "\(action) complete — \(typed) character\(typed == 1 ? "" : "s") sent to target."
+                if skipped > 0 {
+                    msg += " Skipped \(skipped) unsupported character\(skipped == 1 ? "" : "s")."
+                }
+                self.statusBar.setMessage(msg)
+            }
         }
     }
     @objc private func menuCtrlAltDel()  { ctrlAltDel() }
@@ -732,7 +749,15 @@ final class AppController: NSObject, NSApplicationDelegate, VideoViewInput, Tool
             a.send(key: HIDKeyEvent(usage: m, modifiers: 0, isDown: false, allReleased: i == mods.count - 1))
         }
     }
-    func retuneVideo()            { adapter?.autoTuneVideo() }
+    func retuneVideo() {
+        guard let adapter else {
+            statusBar.setMessage("Not connected — nothing to auto-tune.")
+            return
+        }
+        adapter.autoTuneVideo()
+        // The device confirms with an "Auto-tune complete." message when the phase sweep finishes.
+        statusBar.setMessage("Auto-tuning video…")
+    }
     func toggleFullScreen()       { window.toggleFullScreen(nil) }
     func fitToWindow()            { /* the view always aspect-fits */ }
 

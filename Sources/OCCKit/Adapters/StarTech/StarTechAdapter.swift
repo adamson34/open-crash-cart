@@ -373,7 +373,7 @@ public final class StarTechAdapter: CrashCartAdapter, @unchecked Sendable {
         case .firmwareFail:
             emit(.message("Firmware upgrade failed: \(asciiz(args))"))
         case .autophaseDone:
-            emit(.message("Autophase complete."))
+            emit(.message("Auto-tune complete."))
         case .ftRead:
             handleFtRead(args)
         case .ftWrite:

@@ -83,15 +83,24 @@ public extension CrashCartAdapter {
     func setDDCPreset(_ preset: DDCPreset) {}
 
     /// Type a string into the target as key presses (paste/type text). Runs off the main
-    /// thread, lightly paced so fast typing registers reliably.
-    func typeText(_ text: String) {
+    /// thread, lightly paced so fast typing registers reliably. `completion` fires once the
+    /// last keystroke has been enqueued, reporting how many characters were `typed` and how
+    /// many were `skipped` (unmapped in the US-ASCII layout) — the UI uses it to confirm the
+    /// paste finished. It runs on a background thread; hop to the main actor before touching UI.
+    func typeText(_ text: String,
+                  completion: (@Sendable (_ typed: Int, _ skipped: Int) -> Void)? = nil) {
         let strokes = HIDTyping.strokes(for: text)
-        guard !strokes.isEmpty else { return }
+        let skipped = text.count - strokes.count
+        guard !strokes.isEmpty else {
+            completion?(0, skipped)
+            return
+        }
         DispatchQueue.global(qos: .userInitiated).async {
             for s in strokes {
                 for e in HIDTyping.keyEvents(usage: s.usage, shift: s.shift) { self.send(key: e) }
                 Thread.sleep(forTimeInterval: 0.007)   // light pacing so fast typing registers
             }
+            completion?(strokes.count, skipped)
         }
     }
 

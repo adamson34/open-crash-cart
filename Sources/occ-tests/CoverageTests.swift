@@ -13,6 +13,19 @@ final class RecordingAdapter: CrashCartAdapter, @unchecked Sendable {
     func disconnect() async {}
 }
 
+/// Thread-safe holder for the typed/skipped counts a `typeText` completion reports off the
+/// background typing thread, so the test can read them after awaiting the semaphore.
+final class TypeCounts: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _typed = 0
+    private var _skipped = 0
+    var typed: Int { lock.lock(); defer { lock.unlock() }; return _typed }
+    var skipped: Int { lock.lock(); defer { lock.unlock() }; return _skipped }
+    func set(typed: Int, skipped: Int) {
+        lock.lock(); _typed = typed; _skipped = skipped; lock.unlock()
+    }
+}
+
 func runCoverageGapTests(_ t: Harness) {
     t.section("CH9329 report frames (BC-1.05.011/012/013)")
     t.expectEqual(ch9329KeyboardFrame(modifier: 0, keys: []),
@@ -52,6 +65,31 @@ func runCoverageGapTests(_ t: Harness) {
     t.expectEqual(kp.keys.count, 2, "key press = down + up")
     t.expect(kp.keys[0].usage == 0x29 && kp.keys[0].isDown, "press down")
     t.expect(kp.keys[1].usage == 0x29 && !kp.keys[1].isDown && kp.keys[1].allReleased, "release, allReleased")
+
+    t.section("typeText completion callback (paste feedback)")
+    // "aB€" → 'a' + 'B' are typed (2 chars); '€' is unmapped and skipped (1 char).
+    let typer = RecordingAdapter()
+    let done = DispatchSemaphore(value: 0)
+    let counts = TypeCounts()
+    typer.typeText("aB€") { typed, skipped in
+        counts.set(typed: typed, skipped: skipped)
+        done.signal()
+    }
+    t.expect(done.wait(timeout: .now() + 5) == .success, "completion fires within timeout")
+    t.expectEqual(counts.typed, 2, "reports 2 characters typed")
+    t.expectEqual(counts.skipped, 1, "reports 1 unmapped character skipped")
+
+    // Empty / all-unmapped input still invokes completion (typed 0), so the UI never hangs.
+    let empty = RecordingAdapter()
+    let doneEmpty = DispatchSemaphore(value: 0)
+    let emptyCounts = TypeCounts()
+    empty.typeText("€€") { typed, skipped in
+        emptyCounts.set(typed: typed, skipped: skipped)
+        doneEmpty.signal()
+    }
+    t.expect(doneEmpty.wait(timeout: .now() + 5) == .success, "completion fires for all-unmapped input")
+    t.expectEqual(emptyCounts.typed, 0, "all-unmapped → 0 typed")
+    t.expectEqual(emptyCounts.skipped, 2, "all-unmapped → 2 skipped")
 
     t.section("PlaceholderVideoDecoder")
     let p = PlaceholderVideoDecoder()
